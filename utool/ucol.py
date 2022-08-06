@@ -6,13 +6,19 @@ def split(data, indexes, delimiter=" ", out_delimiter=" ", nullable=False):
     if nullable:
         delimiter = delimiter + "+"
     delimiter = rf"\{delimiter}"
-    for line in data.splitlines():
+    for lineno, line in enumerate(data.splitlines(), start=1):
         cols = re.split(delimiter, line)
         result = ""
         for index in indexes:
             if result:
                 result += out_delimiter
-            result += cols[index if index < 0 else index - 1]
+            try:
+                result += cols[index if index < 0 else index - 1]
+            except IndexError:
+                raise Exception(
+                    f"column {index} not found on line {lineno}"
+                    f':"{line}"')
+                raise Exception(f"line '{line}' does not have {index} columns")
         yield result
 
 
