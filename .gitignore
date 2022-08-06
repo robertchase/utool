@@ -1,0 +1,4 @@
+env/
+fzfenv
+setup.sh
+*.pyc
