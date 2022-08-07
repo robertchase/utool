@@ -44,11 +44,15 @@ if __name__ == "__main__":
     import argparse
     import sys
 
-    parser = argparse.ArgumentParser(description="break text into columns")
-    parser.add_argument("--delimiter", "-d", default=" ")
-    parser.add_argument("--output-delimiter", "-D", default=" ")
-    parser.add_argument("--null-columns", "-n", action="store_true")
-    parser.add_argument("columns", nargs="+")
+    parser = argparse.ArgumentParser(description="select columns from text")
+    parser.add_argument("--delimiter", "-d", default=" ",
+                        help="input column delimiter, default=' '")
+    parser.add_argument("--output-delimiter", "-D", default=" ",
+                        help='output column delimiter, default=" "')
+    parser.add_argument("--null-columns", "-n", action="store_true",
+                        help="ignore consecutive empty columns")
+    parser.add_argument("columns", nargs="+",
+                        help="list of column numbers, e.g. 1 2 -1 5+")
     args = parser.parse_args()
     for line in split(
             sys.stdin.read(),
