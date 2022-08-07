@@ -3,17 +3,35 @@ import re
 
 
 def split(data, indexes, delimiter=" ", out_delimiter=" ", nullable=False):
-    if nullable:
-        delimiter = delimiter + "+"
-    delimiter = rf"\{delimiter}"
+
+    _indexes = []
+    for index in indexes:
+        if match := re.match(r"(\d+)\+$", index):
+            col = int(match.group(1)) - 1
+            _indexes.append(f"{col}:")
+        else:
+            try:
+                index = int(index)
+            except ValueError:
+                raise Exception(f"column number ({index}) must be numeric")
+            if index > 0:
+                index -= 1
+            _indexes.append(index)
+
+    _delimiter = delimiter + "+" if nullable else delimiter
+    _delimiter = rf"\{_delimiter}"
+
     for lineno, line in enumerate(data.splitlines(), start=1):
-        cols = re.split(delimiter, line)
+        cols = re.split(_delimiter, line)
         result = ""
-        for index in indexes:
+        for index in _indexes:
             if result:
                 result += out_delimiter
             try:
-                result += cols[index if index < 0 else index - 1]
+                if isinstance(index, str):
+                    result += delimiter.join(eval(f"cols[{index}]"))
+                else:
+                    result += cols[index]
             except IndexError:
                 raise Exception(
                     f"column {index} not found on line {lineno}"
@@ -32,10 +50,9 @@ if __name__ == "__main__":
     parser.add_argument("--null-columns", "-n", action="store_true")
     parser.add_argument("columns", nargs="+")
     args = parser.parse_args()
-    columns = [int(col) for col in args.columns]
     for line in split(
             sys.stdin.read(),
-            columns,
+            args.columns,
             args.delimiter,
             args.output_delimiter,
             args.null_columns):
