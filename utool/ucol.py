@@ -1,8 +1,24 @@
 #! /usr/bin/env python3
+"""split text into columns"""
 import re
 
 
 def split(data, indexes, delimiter=" ", out_delimiter=" ", nullable=False):
+    """split text into columns
+
+       data - open file
+       indexes - list of column numbers to extract from each line in data
+                 these can be:
+                     integer (first column is "1", second is "2", etc)
+                     negative integer (count from right)
+                     <integer>+ (all columns including and after "integer")
+                 columns can repeat and be in any order
+       delimiter - separator between input columns
+                   multiple sequential delimiters will result in multiple
+                   empty columns unless nullable=True
+       out_delimiter - separator between output columns
+       nullable - control parsing of multiple delimiters (see delimiter)
+    """
 
     _indexes = []
     for index in indexes:
@@ -12,14 +28,14 @@ def split(data, indexes, delimiter=" ", out_delimiter=" ", nullable=False):
         else:
             try:
                 index = int(index)
-            except ValueError:
-                raise Exception(f"column number ({index}) must be numeric")
+            except ValueError as exc:
+                raise Exception(
+                    f"column number ({index}) must be numeric") from exc
             if index > 0:
                 index -= 1
             _indexes.append(index)
 
-    _delimiter = delimiter + "+" if nullable else delimiter
-    _delimiter = rf"\{_delimiter}"
+    _delimiter = "\\" + (delimiter + "+" if nullable else delimiter)
 
     for lineno, line in enumerate(data.splitlines(), start=1):
         cols = re.split(_delimiter, line)
@@ -29,14 +45,14 @@ def split(data, indexes, delimiter=" ", out_delimiter=" ", nullable=False):
                 result += out_delimiter
             try:
                 if isinstance(index, str):
+                    # pylint: disable-next=eval-used
                     result += delimiter.join(eval(f"cols[{index}]"))
                 else:
                     result += cols[index]
-            except IndexError:
+            except IndexError as exc:
                 raise Exception(
-                    f"column {index} not found on line {lineno}"
-                    f':"{line}"')
-                raise Exception(f"line '{line}' does not have {index} columns")
+                    f"line {lineno}:'{line}'"
+                    f" does not have {index} columns") from exc
         yield result
 
 
@@ -54,10 +70,10 @@ if __name__ == "__main__":
     parser.add_argument("columns", nargs="+",
                         help="list of column numbers, e.g. 1 2 -1 5+")
     args = parser.parse_args()
-    for line in split(
+    for response in split(
             sys.stdin.read(),
             args.columns,
             args.delimiter,
             args.output_delimiter,
             args.null_columns):
-        print(line)
+        print(response)
