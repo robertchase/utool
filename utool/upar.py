@@ -3,28 +3,48 @@
 
 def format(data, columns=80, indent=0):
 
-    def _indent(text):
-        return f"{' ' * indent}{text}"
-
     line = ""
+    top = True
+    new_paragraph = False
+
     maxlen = columns - indent
-    for word in data.split():
-
-        if not line:
-            if len(word) >= maxlen:
-                yield _indent(word)
-            else:
-                line = word
-
-        elif len(newl := f"{line} {word}") > maxlen:
-            yield _indent(line)
-            line = word
-
+    for data_line in data.split("\n"):
+        if len(data_line.rstrip()) == 0:
+            if not top:
+                if line:
+                    if new_paragraph:
+                        yield ""
+                        new_paragraph = False
+                    yield f"{' ' * indent}{line}"
+                    line = ""
+                new_paragraph = True
         else:
-            line = newl
+            top = False
+            for word in data_line.split():
+                if not line:
+                    if len(word) >= maxlen:
+                        if new_paragraph:
+                            yield ""
+                            new_paragraph = False
+                        yield f"{' ' * indent}{word}"
+                    else:
+                        line = word
+
+                elif len(newl := f"{line} {word}") > maxlen:
+                    if new_paragraph:
+                        yield ""
+                        new_paragraph = False
+                    yield f"{' ' * indent}{line}"
+                    line = word
+
+                else:
+                    line = newl
 
     if line:
-        yield _indent(line)
+        if new_paragraph:
+            yield ""
+            new_paragraph = False
+        yield f"{' ' * indent}{line}"
 
 
 if __name__ == "__main__":
