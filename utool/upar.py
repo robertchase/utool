@@ -1,13 +1,17 @@
 #! /usr/bin/env python3
+"""format text into paragraphs"""
+import re
 
 
-def format(data, columns=80, indent=0):
+# pylint: disable=too-many-branches
+def paragraph(data, columns=80, indent=None):
+    """yield lines from data that are no more than columns chars long"""
 
     line = ""
     top = True
     new_paragraph = False
 
-    maxlen = columns - indent
+    # pylint: disable=too-many-nested-blocks
     for data_line in data.split("\n"):
         if len(data_line.rstrip()) == 0:
             if not top:
@@ -19,7 +23,11 @@ def format(data, columns=80, indent=0):
                     line = ""
                 new_paragraph = True
         else:
-            top = False
+            if top:
+                if indent is None:
+                    indent = len(re.match(r"(\s*)", data_line).group(1))
+                top = False
+                maxlen = columns - indent
             for word in data_line.split():
                 if not line:
                     if len(word) >= maxlen:
@@ -53,7 +61,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="break text into paragraphs")
     parser.add_argument("--columns", "-c", type=int, default=80)
-    parser.add_argument("--indent", "-i", type=int, default=0)
+    parser.add_argument("--indent", "-i", type=int, default=None)
     args = parser.parse_args()
-    for line in format(sys.stdin.read(), args.columns, args.indent):
-        print(line)
+    for text in paragraph(sys.stdin.read(), args.columns, args.indent):
+        print(text)
