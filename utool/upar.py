@@ -47,10 +47,11 @@ def paragraph(data, columns=80, indent=None):
         if paragraph_no > 0:
             yield ""
         for word in para:
-            if not line and len(word) > maxlen:
-                yield f"{' ' * indent}{word}"
-            elif not line:
-                line = word
+            if not line:
+                if len(word) > maxlen:
+                    yield f"{' ' * indent}{word}"
+                else:
+                    line = word
             elif len(newline := f"{line} {word}") > maxlen:
                 yield f"{' ' * indent}{line}"
                 line = word
