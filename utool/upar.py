@@ -3,27 +3,43 @@
 import re
 
 
-# pylint: disable=too-many-branches
+def get_indent(indent, lines):
+    """derive indent from first non-empty line"""
+    if indent is None:
+        for line in lines:
+            if len(line.strip()):
+                indent = len(re.match(r"(\s*)", line).group(1))
+                break
+    return indent
+
+
+def get_paragraphs(lines):
+    """break lines into paragraphs
+
+    each paragraph is separated by an empty line
+    return a list of paragraphs where a paragraph is a list of words
+    """
+    paras = []
+    para = []
+    for line in lines:
+        if len(line.strip()):
+            for word in line.split():
+                para.append(word)
+        else:
+            if para:
+                paras.append(para)
+                para = []
+    if para:
+        paras.append(para)
+    return paras
+
+
 def paragraph(data, columns=80, indent=None):
     """yield lines from data that are no more than columns chars long"""
 
-    paragraphs = []
-    para = []
-    for data_line in data.split("\n"):
-        if len(data_line.rstrip()) == 0:
-            if para:
-                paragraphs.append(para)
-                para = []
-            continue
-
-        if indent is None:
-            indent = len(re.match(r"(\s*)", data_line).group(1))
-
-        for word in data_line.split():
-            para.append(word)
-
-    if para:
-        paragraphs.append(para)
+    lines = data.split("\n")
+    indent = get_indent(indent, lines)
+    paragraphs = get_paragraphs(lines)
 
     maxlen = columns - (indent or 0)
     line = ""
