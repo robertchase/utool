@@ -1,3 +1,4 @@
+"""tests for usum"""
 import pytest
 
 from utool.usum import group_by
@@ -39,12 +40,16 @@ DATA_FLOAT = (
 )
 
 
-@pytest.mark.parametrize("data, cols, result", (
-    (DATA, [1], {"A": [4], "B": [6]}),
-    (DATA_2_KEY, [1, 2], {"A A": [4], "A B": [6]}),
-    (DATA_2_KEY_ORDER, [1, 3], {"A A": [4], "A B": [6]}),
-    (DATA_2_VAL, [1], {"A": [4, 40], "B": [6, 60]}),
-    (DATA_FLOAT, [1], {"A": [1.1 + 3.3], "B": [2.2 + 4.4]}),
-))
+@pytest.mark.parametrize(
+    "data, cols, result",
+    (
+        (DATA, [1], {"A": [4], "B": [6]}),
+        (DATA_2_KEY, [1, 2], {"A A": [4], "A B": [6]}),
+        (DATA_2_KEY_ORDER, [1, 3], {"A A": [4], "A B": [6]}),
+        (DATA_2_VAL, [1], {"A": [4, 40], "B": [6, 60]}),
+        (DATA_FLOAT, [1], {"A": [1.1 + 3.3], "B": [2.2 + 4.4]}),
+    ),
+)
 def test_group_by(data, cols, result):
+    """test group-by function"""
     assert group_by(data, cols) == result

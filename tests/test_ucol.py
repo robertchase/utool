@@ -1,33 +1,34 @@
+"""test ucol"""
 import pytest
 
 from utool.ucol import split
 
 
-DATA = "1 2 3\n" "4 5 6\n" "A B C"
+DATA = "1 2 3\n" + "4 5 6\n" + "A B C"
 
-DATA_1 = "1\n" "4\n" "A"
+DATA_1 = "1\n" + "4\n" + "A"
 
-DATA_321 = "3 2 1\n" "6 5 4\n" "C B A"
+DATA_321 = "3 2 1\n" + "6 5 4\n" + "C B A"
 
-DATA_11 = "1 1\n" "4 4\n" "A A"
+DATA_11 = "1 1\n" + "4 4\n" + "A A"
 
-DATA_1_1 = "1 3\n" "4 6\n" "A C"
+DATA_1_1 = "1 3\n" + "4 6\n" + "A C"
 
-DATA_BAR = "1|2|3\n" "4|5|6\n" "A|B|C"
+DATA_BAR = "1|2|3\n" + "4|5|6\n" + "A|B|C"
 
-DATA_COMMA = "1,2,3\n" "4,5,6\n" "A,B,C"
+DATA_COMMA = "1,2,3\n" + "4,5,6\n" + "A,B,C"
 
-DATA_EXTRA = "1  2 3\n" "4 5  6\n" "A B C"
+DATA_EXTRA = "1  2 3\n" + "4 5  6\n" + "A B C"
 
-DATA_EXTRA_123_COMMA = "1,,2\n" "4,5,\n" "A,B,C"
+DATA_EXTRA_123_COMMA = "1,,2\n" + "4,5,\n" + "A,B,C"
 
-DATA_VARIABLE = "1 2 3 4 5 6\n" "A B C D\n" "9 8 7 6 5 4 3 2 1 0"
+DATA_VARIABLE = "1 2 3 4 5 6\n" + "A B C D\n" + "9 8 7 6 5 4 3 2 1 0"
 
-DATA_VARIABLE_4 = "1 4 5 6\n" "A D\n" "9 6 5 4 3 2 1 0"
+DATA_VARIABLE_4 = "1 4 5 6\n" + "A D\n" + "9 6 5 4 3 2 1 0"
 
-DATA_SPACES = "  1   2   3\n" "    4     5     6\n" "A B C"
+DATA_SPACES = "  1   2   3\n" + "    4     5     6\n" + "A B C"
 
-DATA_SPACES_NULLABLE_1 = "\n" "\n" "A"
+DATA_SPACES_NULLABLE_1 = "\n" + "\n" + "A"
 
 
 @pytest.mark.parametrize(
@@ -48,6 +49,8 @@ DATA_SPACES_NULLABLE_1 = "\n" "\n" "A"
         (DATA_SPACES, ["1"], " ", " ", False, DATA_SPACES_NULLABLE_1),
     ),
 )
+# pylint: disable-next=too-many-arguments
 def test_basic(data, cols, delim, out_delim, nullable, result):
-    ans = "\n".join([lin for lin in split(data, cols, delim, out_delim, nullable)])
+    """test split function"""
+    ans = "\n".join(lin for lin in split(data, cols, delim, out_delim, nullable))
     assert ans == result

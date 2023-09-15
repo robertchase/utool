@@ -2,3 +2,4 @@ env/
 fzfenv
 setup.sh
 *.pyc
+.env
