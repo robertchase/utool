@@ -41,6 +41,8 @@ def split(data, indexes, delimiter=" ", out_delimiter=" ", nullable=False):
     _delimiter = "\\" + (delimiter + "+" if nullable else delimiter)
 
     for lineno, line in enumerate(data.splitlines(), start=1):
+        if nullable:
+            line = line.strip(delimiter)
         cols = re.split(_delimiter, line)
         result = ""
         for index in _indexes:
