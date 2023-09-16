@@ -1,7 +1,7 @@
 """test ucol"""
 import pytest
 
-from utool.ucol import split
+from utool.ucol import split, UcolException
 
 
 DATA = "1 2 3\n" + "4 5 6\n" + "A B C"
@@ -46,7 +46,7 @@ DATA_SPACES_NULLABLE_1 = "\n" + "\n" + "A"
         (DATA_EXTRA, ["1", "2", "3"], " ", ",", True, DATA_COMMA),
         (DATA_VARIABLE, ["1", "4+"], " ", " ", False, DATA_VARIABLE_4),
         (DATA_SPACES, ["1"], " ", " ", True, DATA_1),
-        (DATA_SPACES, ["1"], " ", " ", False, DATA_SPACES_NULLABLE_1),
+        (DATA_SPACES, ["1"], " ", " ", False, DATA_SPACES_NULLABLE_1.strip()),
     ),
 )
 # pylint: disable-next=too-many-arguments
@@ -54,3 +54,18 @@ def test_basic(data, cols, delim, out_delim, nullable, result):
     """test split function"""
     ans = "\n".join(lin for lin in split(data, cols, delim, out_delim, nullable))
     assert ans == result
+
+
+DATA_SPARSE = "1 2\n3\n4 5"
+
+DATA_SPARSE_2 = "2\n5"
+
+
+def test_strict():
+    """test strict switch"""
+
+    ans = "\n".join(lin for lin in split(DATA_SPARSE, ["2"]))
+    assert ans == DATA_SPARSE_2
+
+    with pytest.raises(UcolException):
+        list(split(DATA_SPARSE, ["2"], strict=True))

@@ -7,7 +7,10 @@ class UcolException(Exception):
     """ucol specific exception"""
 
 
-def split(data, indexes, delimiter=" ", out_delimiter=" ", nullable=False):
+# pylint: disable-next=too-many-arguments,too-many-locals,too-many-branches
+def split(
+    data, indexes, delimiter=" ", out_delimiter=" ", nullable=False, strict=False
+):
     """split text into columns
 
     data - open file
@@ -22,6 +25,7 @@ def split(data, indexes, delimiter=" ", out_delimiter=" ", nullable=False):
                 empty columns unless nullable=True
     out_delimiter - separator between output columns
     nullable - control parsing of multiple delimiters (see delimiter)
+    strict - if True, stop on rows that have too few columns, else skip
     """
 
     _indexes = []
@@ -54,11 +58,15 @@ def split(data, indexes, delimiter=" ", out_delimiter=" ", nullable=False):
                     result += delimiter.join(eval(f"cols[{index}]"))
                 else:
                     result += cols[index]
-            except IndexError as exc:
+            except IndexError:
+                if not strict:
+                    result = None
+                    break
                 raise UcolException(
-                    f"line {lineno}:'{line}'" f" does not have {index} columns"
-                ) from exc
-        yield result
+                    f"{lineno=}:'{line}'" f" does not have {index} columns"
+                ) from None
+        if result:
+            yield result
 
 
 if __name__ == "__main__":
@@ -82,6 +90,12 @@ if __name__ == "__main__":
         help="allow consecutive empty columns",
     )
     parser.add_argument(
+        "--strict",
+        "-s",
+        action="store_true",
+        help="error on rows that have to few columns (else skip)",
+    )
+    parser.add_argument(
         "columns", nargs="+", help="list of column numbers, e.g. 1 2 -1 5+"
     )
     args = parser.parse_args()
@@ -91,5 +105,6 @@ if __name__ == "__main__":
         args.delimiter,
         args.output_delimiter,
         not args.null_columns,
+        args.strict,
     ):
         print(response)
