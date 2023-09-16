@@ -4,7 +4,10 @@ import operator
 
 
 class UsumException(Exception):
-    """usum specific version of exception"""
+    """special usum handling"""
+
+    def __init__(self, line, msg):
+        self.args = (f"{line=}: {msg}",)
 
 
 def num(value):
@@ -38,21 +41,40 @@ def group_by(data, cols):
             if sums and len(values) != len(sums):
                 raise IndexError(f"number of columns doesn't match {key=}")
         except Exception as err:
-            raise UsumException(f"line={linenum}: {err}") from err
+            raise UsumException(linenum, str(err)) from None
         groups[key] = list(map(operator.add, sums, values)) if sums else values
     return groups
+
+
+def sum_all(data):
+    """add every number found"""
+
+    total = 0
+
+    for linenum, line in enumerate(data, start=1):
+        if not (toks := line.split()):
+            continue
+        try:
+            total += sum(num(tok) for tok in toks)
+        except ValueError as err:
+            raise UsumException(linenum, str(err)) from None
+
+    return total
 
 
 def main():
     """Main handler."""
     parser = argparse.ArgumentParser(description="sum group by")
-    parser.add_argument("groupby", nargs="+", type=int)
+    parser.add_argument("groupby", nargs="*", type=int, default=0)
     args = parser.parse_args()
 
-    groups = group_by(sys.stdin, args.groupby)
-
-    for key, val in groups.items():
-        sys.stdout.write(f"{key} {' '.join((str(n) for n in val))}")
+    if args.groupby:
+        groups = group_by(sys.stdin, args.groupby)
+        for key, val in groups.items():
+            sys.stdout.write(f"{key} {' '.join((str(n) for n in val))}\n")
+    else:
+        total = sum_all(sys.stdin)
+        sys.stdout.write(str(total))
 
 
 if __name__ == "__main__":

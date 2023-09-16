@@ -3,3 +3,4 @@ fzfenv
 setup.sh
 *.pyc
 .env
+tmp*

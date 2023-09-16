@@ -1,7 +1,7 @@
 """tests for usum"""
 import pytest
 
-from utool.usum import group_by
+from utool.usum import group_by, sum_all
 
 
 DATA = (
@@ -40,6 +40,12 @@ DATA_FLOAT = (
 )
 
 
+DATA_ZERO = (
+    "1 2 3",
+    "4.5",
+)
+
+
 @pytest.mark.parametrize(
     "data, cols, result",
     (
@@ -53,3 +59,12 @@ DATA_FLOAT = (
 def test_group_by(data, cols, result):
     """test group-by function"""
     assert group_by(data, cols) == result
+
+
+@pytest.mark.parametrize(
+    "data, result",
+    ((DATA_ZERO, 10.5),),
+)
+def test_sum_all(data, result):
+    """test sum-all function"""
+    assert sum_all(data) == result

@@ -146,6 +146,13 @@ Aug 198
 Jul 116
 ```
 
+Sum all the numbers in a file by not providing a column number:
+
+```
+home/test:~> cat data | ucol 2 3 | usum
+411
+```
+
 ### syntax
 ```
 usum [-h] [groupby [groupby ...]]
