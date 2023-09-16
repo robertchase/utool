@@ -79,7 +79,7 @@ if __name__ == "__main__":
         "--null-columns",
         "-n",
         action="store_true",
-        help="ignore consecutive empty columns",
+        help="allow consecutive empty columns",
     )
     parser.add_argument(
         "columns", nargs="+", help="list of column numbers, e.g. 1 2 -1 5+"
@@ -90,6 +90,6 @@ if __name__ == "__main__":
         args.columns,
         args.delimiter,
         args.output_delimiter,
-        args.null_columns,
+        not args.null_columns,
     ):
         print(response)
