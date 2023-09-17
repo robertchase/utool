@@ -63,7 +63,7 @@ def split(
                     result = None
                     break
                 raise UcolException(
-                    f"{lineno=}:'{line}'" f" does not have {index} columns"
+                    f"line={lineno}:'{line}'" f" does not have enough columns"
                 ) from None
         if result:
             yield result
@@ -87,13 +87,13 @@ if __name__ == "__main__":
         "--null-columns",
         "-n",
         action="store_true",
-        help="allow consecutive empty columns",
+        help="consecutive delimiters indicate multiple columns",
     )
     parser.add_argument(
         "--strict",
         "-s",
         action="store_true",
-        help="error on rows that have to few columns (else skip)",
+        help="raise error on rows that have too few columns (else skip)",
     )
     parser.add_argument(
         "columns", nargs="+", help="list of column numbers, e.g. 1 2 -1 5+"

@@ -67,8 +67,8 @@ if __name__ == "__main__":
     import sys
 
     parser = argparse.ArgumentParser(description="break text into paragraphs")
-    parser.add_argument("--columns", "-c", type=int, default=80)
+    parser.add_argument("--length", "-l", type=int, default=80)
     parser.add_argument("--indent", "-i", type=int, default=None)
     args = parser.parse_args()
-    for text in paragraph(sys.stdin.read(), args.columns, args.indent):
+    for text in paragraph(sys.stdin.read(), args.length, args.indent):
         print(text)

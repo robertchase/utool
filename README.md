@@ -23,26 +23,17 @@ total 40
 -rw-r--r--   1 bob  staff   1068 Jun 12 05:38 LICENSE
 -rw-------   1 bob  staff     81 Jun 12 05:45 Makefile
 -rw-r--r--@  1 bob  staff    226 Jun 12 19:03 README.md
--rw-------@  1 bob  staff   4539 Jun 12 18:42 ucol.c
+-rw-------@  1 bob  staff   4539 Jun 12 18:42 ucol.py
 
 > ls -l | ucol 5 1 5
 
-total
 1068 -rw-r--r-- 1068
 81 -rw------- 81
 1045 -rw-r--r--@ 1045
 4539 -rw-------@ 4539
-
-
-> ls -l | ucol 5 1 5 | tail -n +2
-
-1068 -rw-r--r-- 1068
-81 -rw------- 81
-1032 -rw-r--r--@ 1032
-4539 -rw-------@ 4539
 ```
 
-Here `ucol` participates, with other cli tools,
+Here `ucol` is used
 to extract a few columns
 from the results of the `ls` command.
 Note that the columns can be specified in any order,
@@ -58,28 +49,36 @@ will index from the right.
 LICENSE
 Makefile
 README.md
-ucol.c
+ucol.py
 ```
 
 ### syntax
 ```
-ucol [-dDno] column-numbers [filename]
+ucol [-dDns] column-numbers [filename]
 ```
 
 ### options
 ```
-  -dc       use 'c' as input column delimiter
-            (default whitespace)
-  -Dc       use 'c' as output column delimiter
-            (default space)
-  -n        allow null columns
+  -dc                 use 'c' as input column delimiter
+  --delimiter         (default whitespace)
 
-            Normally, when multiple column delimiters are encountered in
-            sequence, they are treated as a single delimiter. If null columns
-            are allowed, each column delimiter starts a new column, and
-            sequential delimiters indicate zero-length columns.
+  -Dc                 use 'c' as output column delimiter
+  --output-delimiter  (default space)
 
-  -oFile    output filename
+  -n                  allow null columns
+  --null-columns
+                      Normally, when multiple column delimiters are
+                      encountered in sequence, they are treated as a single
+                      delimiter. If null columns are allowed, each column 
+                      delimiter starts a new column, and sequential delimiters
+                      indicate zero-length columns.
+            
+
+  -s                  handle errors strictly
+  --strict
+                      If a line is encountered that doesn't have enough columns
+                      to satisfy the command, it is skipped. If the strict flag
+                      is set, this condition will cause the program to stop.
 ```
 
 ## usum
@@ -122,7 +121,7 @@ home/test:~> cat data | usum 2 1
 2 Aug 71
 ```
 
-Sum just one column:
+Sum by just one column:
 
 ```
 home/test:~> cat data | usum 1
@@ -149,13 +148,26 @@ Jul 116
 Sum all the numbers in a file by not providing a column number:
 
 ```
-home/test:~> cat data | ucol 2 3 | usum
+home/test:~> cat data  usum
 411
 ```
 
+All the numeric tokens in the file are summed.
+
 ### syntax
 ```
-usum [-h] [groupby [groupby ...]]
+usum [-s] [groupby [groupby ...]]
+```
+
+### options
+```
+  -s        handle errors strictly
+  --strict
+            If a line is encountered that doesn't have the right number
+            of columns to satisfy the command, it is skipped. If a column
+            to be summed is not a numerical value, it is treated as zero.
+            If the strict flag is set, either of these conditions will
+            cause the program to stop.
 ```
 
 ## upar
@@ -198,7 +210,7 @@ them to the separation.
 Format the test data into paragraphs of lines not exceeding 60 characters:
 
 ```
-upar -c60 < test_data.txt
+upar -l60 < test_data.txt
 
 When in the Course of human events, it becomes necessary for
 one people to dissolve the political bands which have
@@ -225,7 +237,7 @@ upar -i5 < test_data.txt
 Multi-paragraph:
 
 ```
-upar -i5 -c 60 < test_data_2.txt
+upar -i5 -l 60 < test_data_2.txt
 
      When in the Course of human events, it becomes
      necessary for one people to dissolve the political
@@ -267,20 +279,21 @@ From `command` mode in `vi`, the next 10 lines can be formatted
 into a paragraph with this command:
 
 ```
-:.,+9!upar -c75
+:.,+9!upar -l75
 ```
 
 This is helpful for cleaning up comment blocks or formatting simple text files.
 
 ### syntax
 ```
-upar [-hci] [groupby [groupby ...]]
+upar [-li] [groupby [groupby ...]]
 ```
 
 ### options
 ```
-  -cn       use 'n' as the max output line length
-            (default 80)
+  -ln       use 'n' as the max output line length
+  --length  (default 80)
+  
   -in       indent lines by 'n', included in line length
-            (default indent of first line)
+  --indent  (default indent of first line)
 ```
