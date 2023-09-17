@@ -39,7 +39,7 @@ from the results of the `ls` command.
 Note that the columns can be specified in any order,
 and can be specified more than once.
 
-Values of -1 through -9 can be specified as column numbers; these
+Negative values can be specified as column numbers; these
 will index from the right.
 
 ```
@@ -72,7 +72,6 @@ ucol [-dDns] column-numbers [filename]
                       delimiter. If null columns are allowed, each column 
                       delimiter starts a new column, and sequential delimiters
                       indicate zero-length columns.
-            
 
   -s                  handle errors strictly
   --strict
@@ -148,7 +147,7 @@ Jul 116
 Sum all the numbers in a file by not providing a column number:
 
 ```
-home/test:~> cat data  usum
+home/test:~> cat data | usum
 411
 ```
 
