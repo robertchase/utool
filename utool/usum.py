@@ -13,11 +13,7 @@ class UsumException(Exception):
 def num(value, strict: bool):
     """Parse number as float or int."""
     if not strict:
-        value = (
-            value
-            .replace("$", "")
-            .replace(",", "")
-        )
+        value = value.replace("$", "").replace(",", "")
     try:
         value_float = float(value)
         try:
