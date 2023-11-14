@@ -80,8 +80,6 @@ ucol [-dDns] column-numbers [filename]
                       is set, this condition will cause the program to stop.
 ```
 
-## usum
-
 # usum
 
 Sum columns in a file.
@@ -92,71 +90,73 @@ Here is some test data:
 
 ```
 home/test:~> cat data
-Jul 30 11
-Jul 31 97
-Jul 31 8
-Aug 1 127
-Aug 2 17
-Aug 2 54
+2000 AUG $3,698.14 -$1,109.44
+2000 SEP $870.96 -$261.29
+2001 AUG $1,676.56 -$502.97
+2001 AUG $940.80 -$282.24
+2001 SEP $2,070.10 -$621.03
 ```
 
 Sum by the first two columns (think of the `SQL groupby` functionality):
 
 ```
 home/test:~> cat data | usum 1 2
-Aug 1 127
-Aug 2 71
-Jul 30 11
-Jul 31 105
+2000 AUG 3698.14 -1109.44
+2000 SEP 870.96 -261.29
+2001 AUG 2617.3599999999997 -785.21
+2001 SEP 2070.1 -621.03
 ```
+
+Notice that `2001 AUG` records are combined. Notice also that the "\$" and ","
+characters are ignored (effectively stripped from the columns).
 
 Specified order of the columns is preserved:
 
 ```
 home/test:~> cat data | usum 2 1
-31 Jul 105
-1 Aug 127
-30 Jul 11
-2 Aug 71
+AUG 2000 3698.14 -1109.44
+SEP 2000 870.96 -261.29
+AUG 2001 2617.3599999999997 -785.21
+SEP 2001 2070.1 -621.03
 ```
 
 Sum by just one column:
 
 ```
 home/test:~> cat data | usum 1
-Aug 5 198
-Jul 92 116
+2000 0 4569.1 -1370.73
+2001 0 4687.459999999999 -1406.24
 ```
+
+Notice that the non-numeric values in the second column are treated as zero.
 
 Combine with `ucol`:
 
 ```
-home/test:~> cat data | ucol 1 3
-Jul 11
-Jul 97
-Jul 8
-Aug 127
-Aug 17
-Aug 54
-
-home/test:~> cat data | ucol 1 3 | usum 1
-Aug 198
-Jul 116
+home/test:~> cat data | ucol 2 3 4
+AUG $3,698.14 -$1,109.44
+SEP $870.96 -$261.29
+AUG $1,676.56 -$502.97
+AUG $940.80 -$282.24
+SEP $2,070.10 -$621.03
+  
+home/test:~> cat data | ucol 2 3 4 | usum 1
+AUG 6315.5 -1894.65
+SEP 2941.06 -882.3199999999999
 ```
 
 Sum each column into a single line (group by zero/nothing):
 
 ```
-home/test:~> cat data | usum 0
-0 97 314
+home/test:~> cat data |  usum 0
+10003 0 9256.56 -2776.9700000000003
 ```
-
 
 Sum all the numbers in a file by not providing a column number:
 
 ```
 home/test:~> cat data | usum
-411
+16482.59
 ```
 
 All the numeric tokens in the file are summed.
@@ -173,7 +173,10 @@ usum [-s] [groupby [groupby ...]]
             If a line is encountered that doesn't have the right number
             of columns to satisfy the command, it is skipped. If a column
             to be summed is not a numerical value, it is treated as zero.
-            If the strict flag is set, either of these conditions will
+            If a column to be summed contains "$" or ",", these characters
+            are ignored.
+            
+            If the strict flag is set, any of these conditions will
             cause the program to stop.
 ```
 
