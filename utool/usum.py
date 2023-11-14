@@ -73,7 +73,7 @@ def sum_all(data, strict: bool = False):
 def main():
     """Main handler."""
     parser = argparse.ArgumentParser(description="sum group by")
-    parser.add_argument("groupby", nargs="*", type=int, default=0)
+    parser.add_argument("groupby", nargs="*", type=int)
     parser.add_argument(
         "--strict",
         "-s",
@@ -83,6 +83,8 @@ def main():
 
     args = parser.parse_args()
     if args.groupby:
+        if len(args.groupby) == 1 and args.groupby[0] == 0:
+            args.groupby = []
         groups = group_by(sys.stdin, args.groupby, args.strict)
         for key, val in groups.items():
             sys.stdout.write(f"{key} {' '.join((str(n) for n in val))}\n")

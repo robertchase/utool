@@ -144,6 +144,14 @@ Aug 198
 Jul 116
 ```
 
+Sum each column into a single line (group by zero/nothing):
+
+```
+home/test:~> cat data | usum 0
+0 97 314
+```
+
+
 Sum all the numbers in a file by not providing a column number:
 
 ```
