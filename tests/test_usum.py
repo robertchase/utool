@@ -49,11 +49,11 @@ DATA_ZERO = (
 @pytest.mark.parametrize(
     "data, cols, result",
     (
-        (DATA, [1], {"A": [4], "B": [6]}),
-        (DATA_2_KEY, [1, 2], {"A A": [4], "A B": [6]}),
-        (DATA_2_KEY_ORDER, [1, 3], {"A A": [4], "A B": [6]}),
-        (DATA_2_VAL, [1], {"A": [4, 40], "B": [6, 60]}),
-        (DATA_FLOAT, [1], {"A": [1.1 + 3.3], "B": [2.2 + 4.4]}),
+        (DATA, [1], {"A": ["4"], "B": ["6"]}),
+        (DATA_2_KEY, [1, 2], {"A A": ["4"], "A B": ["6"]}),
+        (DATA_2_KEY_ORDER, [1, 3], {"A A": ["4"], "A B": ["6"]}),
+        (DATA_2_VAL, [1], {"A": ["4", "40"], "B": ["6", "60"]}),
+        (DATA_FLOAT, [1], {"A": ["4.4"], "B": ["6.6"]}),
     ),
 )
 def test_group_by(data, cols, result):
@@ -63,7 +63,7 @@ def test_group_by(data, cols, result):
 
 @pytest.mark.parametrize(
     "data, result",
-    ((DATA_ZERO, 10.5),),
+    ((DATA_ZERO, "10.5"),),
 )
 def test_sum_all(data, result):
     """test sum-all function"""

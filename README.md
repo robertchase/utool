@@ -103,20 +103,23 @@ Sum by the first two columns (think of the `SQL groupby` functionality):
 home/test:~> cat data | usum 1 2
 2000 AUG 3698.14 -1109.44
 2000 SEP 870.96 -261.29
-2001 AUG 2617.3599999999997 -785.21
+2001 AUG 2617.36 -785.21
 2001 SEP 2070.1 -621.03
 ```
 
 Notice that `2001 AUG` records are combined. Notice also that the "\$" and ","
-characters are ignored (effectively stripped from the columns).
+characters are ignored (effectively stripped from the columns). The value in a column with the largest precision
+sets the precision for all of the sums of that column (this
+gets rid of unintuitive floating point math things&mdash;without this the summed line above
+would be `2001 AUG 2617.3599999999997 -785.21`).
 
-Specified order of the columns is preserved:
+The specified order of the columns is preserved:
 
 ```
 home/test:~> cat data | usum 2 1
 AUG 2000 3698.14 -1109.44
 SEP 2000 870.96 -261.29
-AUG 2001 2617.3599999999997 -785.21
+AUG 2001 2617.36 -785.21
 SEP 2001 2070.1 -621.03
 ```
 
@@ -125,7 +128,7 @@ Sum by just one column:
 ```
 home/test:~> cat data | usum 1
 2000 0 4569.1 -1370.73
-2001 0 4687.459999999999 -1406.24
+2001 0 4687.46 -1406.24
 ```
 
 Notice that the non-numeric values in the second column are treated as zero.
@@ -142,14 +145,14 @@ SEP $2,070.10 -$621.03
   
 home/test:~> cat data | ucol 2 3 4 | usum 1
 AUG 6315.5 -1894.65
-SEP 2941.06 -882.3199999999999
+SEP 2941.06 -882.32
 ```
 
 Sum each column into a single line (group by zero/nothing):
 
 ```
 home/test:~> cat data |  usum 0
-10003 0 9256.56 -2776.9700000000003
+10003 0 9256.56 -2776.97
 ```
 
 Sum all the numbers in a file by not providing a column number:
