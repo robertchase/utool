@@ -1,17 +1,41 @@
 #! /usr/bin/env python3
-"""split text into columns"""
+"""Split text into columns."""
+import csv
 import re
 
 
 class UcolException(Exception):
-    """ucol specific exception"""
+    """ucol specific exception."""
 
 
-# pylint: disable-next=too-many-arguments,too-many-locals,too-many-branches
-def split(
-    data, indexes, delimiter=" ", out_delimiter=" ", nullable=False, strict=False
+def parse_indexes(indexes):
+    """normalize specified indexes"""
+    _indexes = []
+    for index in indexes:
+        if match := re.match(r"(\d+)\+$", index):
+            col = int(match.group(1)) - 1
+            _indexes.append(f"{col}:")
+        else:
+            try:
+                index = int(index)
+            except ValueError as exc:
+                raise UcolException(f"column number ({index}) must be numeric") from exc
+            if index > 0:
+                index -= 1
+            _indexes.append(index)
+    return _indexes
+
+
+def split(  # pylint: disable=too-many-arguments
+    data,
+    indexes,
+    delimiter=" ",
+    out_delimiter=" ",
+    nullable=False,
+    strict=False,
+    is_csv=False,
 ):
-    """split text into columns
+    """Split text into columns.
 
     data - open file
     indexes - list of column numbers to extract from each line in data
@@ -26,36 +50,29 @@ def split(
     out_delimiter - separator between output columns
     nullable - control parsing of multiple delimiters (see delimiter)
     strict - if True, stop on rows that have too few columns, else skip
+    is_csv - if True, parse each line with csv reader
     """
+    indexes = parse_indexes(indexes)
 
-    _indexes = []
-    for index in indexes:
-        if match := re.match(r"(\d+)\+$", index):
-            col = int(match.group(1)) - 1
-            _indexes.append(f"{col}:")
-        else:
-            try:
-                index = int(index)
-            except ValueError as exc:
-                raise UcolException(f"column number ({index}) must be numeric") from exc
-            if index > 0:
-                index -= 1
-            _indexes.append(index)
-
-    _delimiter = "\\" + (delimiter + "+" if nullable else delimiter)
+    if not is_csv:
+        _delimiter = "\\" + (delimiter + "+" if nullable else delimiter)
 
     for lineno, line in enumerate(data.splitlines(), start=1):
         if nullable:
             line = line.strip(delimiter)
-        cols = re.split(_delimiter, line)
+        if is_csv:
+            cols = list(csv.reader([line]))[0]
+        else:
+            cols = re.split(_delimiter, line)
         result = ""
-        for index in _indexes:
+        for index in indexes:
             if result:
                 result += out_delimiter
             try:
                 if isinstance(index, str):
-                    # pylint: disable-next=eval-used
-                    result += delimiter.join(eval(f"cols[{index}]"))
+                    result += delimiter.join(
+                        eval(f"cols[{index}]")
+                    )  # pylint: disable=eval-used
                 else:
                     result += cols[index]
             except IndexError:
@@ -63,7 +80,7 @@ def split(
                     result = None
                     break
                 raise UcolException(
-                    f"line={lineno}:'{line}'" f" does not have enough columns"
+                    f"line={lineno}:'{line}' does not have enough columns"
                 ) from None
         if result:
             yield result
@@ -82,6 +99,11 @@ if __name__ == "__main__":
         "-D",
         default=" ",
         help='output column delimiter, default=" "',
+    )
+    parser.add_argument(
+        "--csv",
+        action="store_true",
+        help="handle commas, quotes, and escapes like a csv file",
     )
     parser.add_argument(
         "--null-columns",
@@ -106,5 +128,6 @@ if __name__ == "__main__":
         args.output_delimiter,
         not args.null_columns,
         args.strict,
+        args.csv,
     ):
         print(response)

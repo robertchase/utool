@@ -2,5 +2,5 @@ env/
 fzfenv
 setup.sh
 *.pyc
-.env
+.venv
 tmp*

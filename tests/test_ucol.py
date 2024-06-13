@@ -1,7 +1,8 @@
 """test ucol"""
+
 import pytest
 
-from utool.ucol import split, UcolException
+from utool import ucol
 
 
 DATA = "1 2 3\n" + "4 5 6\n" + "A B C"
@@ -52,7 +53,30 @@ DATA_SPACES_NULLABLE_1 = "\n" + "\n" + "A"
 # pylint: disable-next=too-many-arguments
 def test_basic(data, cols, delim, out_delim, nullable, result):
     """test split function"""
-    ans = "\n".join(lin for lin in split(data, cols, delim, out_delim, nullable))
+    ans = "\n".join(lin for lin in ucol.split(data, cols, delim, out_delim, nullable))
+    assert ans == result
+
+
+DATA_CSV = '"1"," 2",3\n' + '"4",5,6\n' + '"A","""B",C'
+
+DATA_CSV_1 = "1\n" + "4\n" + "A"
+
+DATA_CSV_2 = " 2\n" + "5\n" + '"B'
+
+DATA_CSV_3 = "3\n" + "6\n" + "C"
+
+
+@pytest.mark.parametrize(
+    "data, cols, result",
+    (
+        (DATA_CSV, ["1"], DATA_CSV_1),
+        (DATA_CSV, ["2"], DATA_CSV_2),
+        (DATA_CSV, ["3"], DATA_CSV_3),
+    ),
+)
+def test_csv(data, cols, result):
+    """test csv option"""
+    ans = "\n".join(lin for lin in ucol.split(data, cols, is_csv=True))
     assert ans == result
 
 
@@ -64,8 +88,8 @@ DATA_SPARSE_2 = "2\n5"
 def test_strict():
     """test strict switch"""
 
-    ans = "\n".join(lin for lin in split(DATA_SPARSE, ["2"]))
+    ans = "\n".join(lin for lin in ucol.split(DATA_SPARSE, ["2"]))
     assert ans == DATA_SPARSE_2
 
-    with pytest.raises(UcolException):
-        list(split(DATA_SPARSE, ["2"], strict=True))
+    with pytest.raises(ucol.UcolException):
+        list(ucol.split(DATA_SPARSE, ["2"], strict=True))

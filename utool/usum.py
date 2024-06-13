@@ -59,18 +59,25 @@ def group_by(data, cols, strict: bool = False):
 
             if precision is None:
                 precision = [0] * len(values)
-            precision = [max(pre, val[1]) for pre, val in zip(precision, values)]
+            precision = [
+                max(pre, val[1]) for pre, val in zip(precision, values, strict=False)
+            ]
 
             if sums is None:
                 sums = [0] * len(values)
-            groups[key] = [sum_ + val[0] for sum_, val in zip(sums, values)]
+            groups[key] = [
+                sum_ + val[0] for sum_, val in zip(sums, values, strict=False)
+            ]
 
         except (ValueError, IndexError) as err:
             if strict:
                 raise UsumException(linenum, str(err)) from None
 
     for key, sums in groups.items():
-        fmt = [f"{{:.{prec}f}}".format(col) for col, prec in zip(sums, precision)]
+        fmt = [
+            f"{{:.{prec}f}}".format(col)
+            for col, prec in zip(sums, precision, strict=False)
+        ]
         groups[key] = fmt
 
     return groups
@@ -114,7 +121,7 @@ def main():
             args.groupby = []
         groups = group_by(sys.stdin, args.groupby, args.strict)
         for key, val in groups.items():
-            sys.stdout.write(f"{key} {' '.join((n for n in val))}\n")
+            sys.stdout.write(f"{key} {' '.join(n for n in val)}\n")
     else:
         total = sum_all(sys.stdin, args.strict)
         sys.stdout.write(total)

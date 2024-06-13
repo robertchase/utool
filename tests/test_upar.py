@@ -1,4 +1,5 @@
 """test upar"""
+
 import pytest
 
 from utool.upar import paragraph

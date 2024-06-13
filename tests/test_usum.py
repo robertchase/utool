@@ -1,4 +1,5 @@
 """tests for usum"""
+
 import pytest
 
 from utool.usum import group_by, sum_all
