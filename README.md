@@ -65,6 +65,8 @@ ucol [-dDns] column-numbers [filename]
   -Dc                 use 'c' as output column delimiter
   --output-delimiter  (default space)
 
+  --csv               parse lines as csv
+  
   -n                  allow null columns
   --null-columns
                       Normally, when multiple column delimiters are
