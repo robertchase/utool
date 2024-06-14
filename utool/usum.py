@@ -19,9 +19,9 @@ def num(value, strict: bool):
     precision = 0
     try:
         value_float = float(value)
-        prec = value.split(".")
-        if len(prec) == 2:
-            precision = len(prec[1])
+        parts = value.split(".")
+        if len(parts) == 2:
+            precision = len(parts[1].strip())
         try:
             value_int = int(value)
         except ValueError:
@@ -35,18 +35,19 @@ def num(value, strict: bool):
         raise ValueError(f"could not convert '{value}' to number") from None
 
 
-def group_by(data, cols, strict: bool = False):
+def group_by(data, cols, delim=" ", strict: bool = False):
     """Sum data by specified columns
 
     data -- iterable of lines of data to be summed
     cols -- list of columns numbers that comprise the key (starting at 1)
             (other columns will be summed)
+    delim -- column separator
     strict -- if True, expect data to be clean and well-shaped
     """
     groups = {}
     precision = None
     for linenum, line in enumerate(data, start=1):
-        toks = line.split()
+        toks = line.split(delim)
         if not toks:
             continue
         try:
@@ -83,14 +84,14 @@ def group_by(data, cols, strict: bool = False):
     return groups
 
 
-def sum_all(data, strict: bool = False):
+def sum_all(data, delim=" ", strict: bool = False):
     """add every number found"""
 
     total = 0
     precision = 0
 
     for linenum, line in enumerate(data, start=1):
-        if not (toks := line.split()):
+        if not (toks := line.split(delim)):
             continue
         try:
             for tok in toks:
@@ -109,6 +110,12 @@ def main():
     parser = argparse.ArgumentParser(description="sum group by")
     parser.add_argument("groupby", nargs="*", type=int)
     parser.add_argument(
+        "--delimiter",
+        "-d",
+        default=" ",
+        help="input/output column delimiter, default=' '",
+    )
+    parser.add_argument(
         "--strict",
         "-s",
         action="store_true",
@@ -119,11 +126,16 @@ def main():
     if args.groupby:
         if len(args.groupby) == 1 and args.groupby[0] == 0:
             args.groupby = []
-        groups = group_by(sys.stdin, args.groupby, args.strict)
-        for key, val in groups.items():
-            sys.stdout.write(f"{key} {' '.join(n for n in val)}\n")
+        groups = group_by(sys.stdin, args.groupby, args.delimiter, args.strict)
+        if args.groupby:
+            for key, val in groups.items():
+                line = args.delimiter.join(n for n in val)
+                sys.stdout.write(f"{key}{args.delimiter}{line}\n")
+        else:
+            _, val = list(groups.items())[0]
+            sys.stdout.write(args.delimiter.join(n for n in val))
     else:
-        total = sum_all(sys.stdin, args.strict)
+        total = sum_all(sys.stdin, args.delimiter, args.strict)
         sys.stdout.write(total)
 
 

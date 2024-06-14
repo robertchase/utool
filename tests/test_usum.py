@@ -47,6 +47,12 @@ DATA_ZERO = (
 )
 
 
+DATA_DELIMITER = (
+    "1|2|3",
+    "4|5|6",
+)
+
+
 @pytest.mark.parametrize(
     "data, cols, result",
     (
@@ -69,3 +75,12 @@ def test_group_by(data, cols, result):
 def test_sum_all(data, result):
     """test sum-all function"""
     assert sum_all(data) == result
+
+
+@pytest.mark.parametrize(
+    "data, result",
+    ((DATA_DELIMITER, {"": ["5", "7", "9"]}),),
+)
+def test_delimiter(data, result):
+    """test non-space delimiter function"""
+    assert group_by(data, [], delim="|") == result
