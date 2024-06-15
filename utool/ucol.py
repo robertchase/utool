@@ -71,7 +71,7 @@ def split(  # pylint: disable=too-many-arguments
             try:
                 if isinstance(index, str):
                     # pylint: disable-next=eval-used
-                    result += delimiter.join(eval(f"cols[{index}]"))
+                    result += out_delimiter.join(eval(f"cols[{index}]"))
                 else:
                     result += cols[index]
             except IndexError:
