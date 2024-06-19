@@ -8,13 +8,20 @@ class UcolException(Exception):
     """ucol specific exception."""
 
 
+class ColRange:  # pylint: disable=too-few-public-methods
+    """represent a range of columns starting at 'start'"""
+
+    def __init__(self, start: int):
+        self.start = start
+
+
 def parse_indexes(indexes):
     """normalize specified indexes"""
     _indexes = []
     for index in indexes:
         if match := re.match(r"(\d+)\+$", index):
-            col = int(match.group(1)) - 1
-            _indexes.append(f"{col}:")
+            col = ColRange(int(match.group(1)) - 1)
+            _indexes.append(col)
         else:
             try:
                 index = int(index)
@@ -30,7 +37,6 @@ def split(  # pylint: disable=too-many-arguments
     data,
     indexes,
     delimiter=" ",
-    out_delimiter=" ",
     nullable=False,
     strict=False,
     is_csv=False,
@@ -47,7 +53,6 @@ def split(  # pylint: disable=too-many-arguments
     delimiter - separator between input columns
                 multiple sequential delimiters will result in multiple
                 empty columns unless nullable=True
-    out_delimiter - separator between output columns
     nullable - control parsing of multiple delimiters (see delimiter)
     strict - if True, stop on rows that have too few columns, else skip
     is_csv - if True, parse each line with csv reader
@@ -64,16 +69,13 @@ def split(  # pylint: disable=too-many-arguments
             cols = list(csv.reader([line]))[0]
         else:
             cols = re.split(_delimiter, line)
-        result = ""
+        result = []
         for index in indexes:
-            if result:
-                result += out_delimiter
             try:
-                if isinstance(index, str):
-                    # pylint: disable-next=eval-used
-                    result += out_delimiter.join(eval(f"cols[{index}]"))
+                if isinstance(index, ColRange):
+                    result.extend(cols[index.start :])
                 else:
-                    result += cols[index]
+                    result.append(cols[index])
             except IndexError:
                 if not strict:
                     result = None
@@ -124,9 +126,8 @@ if __name__ == "__main__":
         sys.stdin.read(),
         args.columns,
         args.delimiter,
-        args.output_delimiter,
         not args.null_columns,
         args.strict,
         args.csv,
     ):
-        print(response)
+        print(args.output_delimiter.join(response))
