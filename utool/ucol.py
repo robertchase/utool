@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 """Split text into columns."""
 import csv
+import json
 import re
 
 
@@ -107,6 +108,11 @@ if __name__ == "__main__":
         help="handle commas, quotes, and escapes like a csv file",
     )
     parser.add_argument(
+        "--to-json",
+        action="store_true",
+        help="output as json (list of dict) using first row as keys",
+    )
+    parser.add_argument(
         "--null-columns",
         "-n",
         action="store_true",
@@ -122,6 +128,8 @@ if __name__ == "__main__":
         "columns", nargs="+", help="list of column numbers, e.g. 1 2 -1 5+"
     )
     args = parser.parse_args()
+    if args.to_json:
+        json_result = []
     for response in split(
         sys.stdin.read(),
         args.columns,
@@ -130,4 +138,12 @@ if __name__ == "__main__":
         args.strict,
         args.csv,
     ):
-        print(args.output_delimiter.join(response))
+        if args.to_json:
+            if json_result:
+                json_result.append(dict(zip(json_result[0], response)))
+            else:
+                json_result.append(response)
+        else:
+            print(args.output_delimiter.join(response))
+    if args.to_json:
+        print(json.dumps(json_result[1:]))

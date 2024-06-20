@@ -67,6 +67,8 @@ ucol [-dDns] column-numbers [filename]
 
   --csv               parse lines as csv
   
+  --to-json           output as json (list of dict) using first row as keys
+  
   -n                  allow null columns
   --null-columns
                       Normally, when multiple column delimiters are
