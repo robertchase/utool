@@ -88,3 +88,39 @@ def test_strict():
 
     with pytest.raises(ucol.UcolException):
         list(ucol.split(DATA_SPARSE, ["2"], strict=True))
+
+
+@pytest.mark.parametrize(
+    "value, result",
+    (
+        ("", ""),
+        ("abc", "abc"),
+        ("123", "123"),
+        ("12,345", "12345"),
+        ("12,34", "12,34"),
+        ("12,345.678", "12345.678"),
+        ("$12,345.678", "12345.678"),
+        ("$12,345,000.678", "12345000.678"),
+        ("$12", "12"),
+        ("$12.34", "12.34"),
+        ("$a", "$a"),
+    ),
+)
+def test_remove_comma(value, result):
+    """test numeric cleanup (remove '$' and ',')"""
+    assert ucol.remove_comma(value) == result
+
+
+@pytest.mark.parametrize(
+    "value, result",
+    (
+        (1, "A"),
+        (10, "J"),
+        (26, "Z"),
+        (27, "AA"),
+        (987654321, "CECGIBQ"),
+    ),
+)
+def test_as_alpha(value, result):
+    """test base 26 conversion"""
+    assert ucol.as_alpha(value) == result
