@@ -69,6 +69,8 @@ ucol [-dDns] column-numbers [filename]
   
   --to-json           output as json (list of dict) using first row as keys
   
+  --to-sc             output as sc (spreadsheet calculator) format
+  
   -n                  allow null columns
   --null-columns
                       Normally, when multiple column delimiters are
