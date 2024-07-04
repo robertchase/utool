@@ -168,7 +168,7 @@ if __name__ == "__main__":
         "columns",
         default=["1+"],
         nargs="*",
-        help="list of column numbers, e.g. 1 2 -1 5+",
+        help="list of column numbers, e.g. 1 2 -1 5+ (default=1+)",
     )
     args = parser.parse_args()
     if args.to_sc:
