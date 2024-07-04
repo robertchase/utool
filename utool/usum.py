@@ -1,5 +1,6 @@
 #! /usr/bin/env python3
 """Sum by column CLI utility"""
+import re
 
 
 class UsumException(Exception):
@@ -9,13 +10,14 @@ class UsumException(Exception):
         self.args = (f"{line=}: {msg}",)
 
 
-def num(value, strict: bool):
+def num(value, strict: bool) -> tuple[int | float, int]:
     """Parse number as float or int
 
     returns (numeric value, precision)
     """
     if not strict:
-        value = value.replace("$", "").replace(",", "")
+        if re.match(r"(\$\d*|\$?\d{1,3}(,\d{3})+)(\.\d+)?$", value):
+            value = value.replace("$", "").replace(",", "")
     precision = 0
     try:
         value_float = float(value)

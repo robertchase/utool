@@ -2,7 +2,7 @@
 
 import pytest
 
-from utool.usum import group_by, sum_all
+from utool import usum
 
 
 DATA = (
@@ -65,7 +65,7 @@ DATA_DELIMITER = (
 )
 def test_group_by(data, cols, result):
     """test group-by function"""
-    assert group_by(data, cols) == result
+    assert usum.group_by(data, cols) == result
 
 
 @pytest.mark.parametrize(
@@ -74,7 +74,7 @@ def test_group_by(data, cols, result):
 )
 def test_sum_all(data, result):
     """test sum-all function"""
-    assert sum_all(data) == result
+    assert usum.sum_all(data) == result
 
 
 @pytest.mark.parametrize(
@@ -83,4 +83,29 @@ def test_sum_all(data, result):
 )
 def test_delimiter(data, result):
     """test non-space delimiter function"""
-    assert group_by(data, [], delim="|") == result
+    assert usum.group_by(data, [], delim="|") == result
+
+
+@pytest.mark.parametrize(
+    "value, strict, result",
+    (
+        ("123", False, (123, 0)),
+        ("123", True, (123, 0)),
+        ("123.45", False, (123.45, 2)),
+        ("123.45", True, (123.45, 2)),
+        ("abc", False, (0, 0)),
+        ("abc", True, None),
+        ("$1,234.56", False, (1234.56, 2)),
+        ("$1,234.56", True, None),
+        ("$1,2345.6", False, (0, 0)),
+        ("$1,2345.6", True, None),
+        ("$123,456", False, (123456, 0)),
+        ("$123,456.78", False, (123456.78, 2)),
+    ),
+)
+def test_num(value, strict, result):
+    if result:
+        assert usum.num(value, strict) == result
+    else:
+        with pytest.raises(ValueError):
+            usum.num(value, strict)
