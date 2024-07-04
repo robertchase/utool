@@ -165,7 +165,10 @@ if __name__ == "__main__":
         help="raise error on rows that have too few columns (else skip)",
     )
     parser.add_argument(
-        "columns", nargs="+", help="list of column numbers, e.g. 1 2 -1 5+"
+        "columns",
+        default=["1+"],
+        nargs="*",
+        help="list of column numbers, e.g. 1 2 -1 5+",
     )
     args = parser.parse_args()
     if args.to_sc:

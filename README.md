@@ -52,6 +52,21 @@ README.md
 ucol.py
 ```
 
+A range of column numbers can be specified
+with a plus sign (+) immediately following a column number&mdash;this will
+indicate the column number plus all subsequent columns.
+
+```
+> ls -l | ucol 6+
+
+Jun 12 05:38 LICENSE
+Jun 12 05:45 Makefile
+Jun 12 19:03 README.md
+Jun 12 18:42 ucol.py
+```
+
+If no columns are specified, all columns will be extracted (1+).
+
 ### syntax
 ```
 ucol [-dDns] column-numbers [filename]
@@ -67,9 +82,11 @@ ucol [-dDns] column-numbers [filename]
 
   --csv               parse lines as csv
   
+  --un-comma          remove commas and/or leading dollar sign ($) from numbers
+  
   --to-json           output as json (list of dict) using first row as keys
   
-  --to-sc             output as sc (spreadsheet calculator) format
+  --to-sc             output as sc (spreadsheet calculator) format (enables --un-comma)
   
   -n                  allow null columns
   --null-columns
