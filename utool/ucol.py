@@ -64,10 +64,32 @@ def parse_indexes(indexes: list[str]) -> list[int | ColRange]:
     return _indexes
 
 
+def linesplitter(is_csv, delimiter, nullable):
+
+    if is_csv:
+        def _split(line):
+            return list(csv.reader([line]))[0]
+    elif nullable and delimiter is None:
+        def _split(line):
+            return re.split(r'\s+', line)
+    elif nullable:
+        _delimiter = "\\" + delimiter + "+"
+        def _split(line):
+            return re.split(_delimiter, line.strip(delimiter))
+    elif delimiter is None:
+        def _split(line):
+            return line.split()
+    else:
+        _delimiter = "\\" + delimiter
+        def _split(line):
+            return re.split("\\" + delimiter, line)
+    return _split
+
+
 def split(  # pylint: disable=too-many-arguments
     data: typing.TextIO,
     indexes: list[str],
-    delimiter: str = " ",
+    delimiter: str = None,
     nullable: bool = False,
     strict: bool = False,
     is_csv: bool = False,
@@ -83,23 +105,17 @@ def split(  # pylint: disable=too-many-arguments
               columns can repeat and be in any order
     delimiter - separator between input columns
                 multiple sequential delimiters will result in multiple
-                empty columns unless nullable=True
+                    empty columns unless nullable=True
+                if None, split on whitespace
     nullable - control parsing of multiple delimiters (see delimiter)
     strict - if True, stop on rows that have too few columns, else skip
     is_csv - if True, parse each line with csv reader
     """
     indexes = parse_indexes(indexes)
-
-    if not is_csv:
-        _delimiter = "\\" + (delimiter + "+" if nullable else delimiter)
+    splitter = linesplitter(is_csv, delimiter, nullable)
 
     for lineno, line in enumerate(data.splitlines(), start=1):
-        if nullable:
-            line = line.strip(delimiter)
-        if is_csv:
-            cols = list(csv.reader([line]))[0]
-        else:
-            cols = re.split(_delimiter, line)
+        cols = splitter(line)
         result = []
         for index in indexes:
             try:
@@ -124,7 +140,8 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="select columns from text")
     parser.add_argument(
-        "--delimiter", "-d", default=" ", help="input column delimiter, default=' '"
+        "--delimiter", "-d", default=None,
+        help="input column delimiter, default=whitespace"
     )
     parser.add_argument(
         "--output-delimiter",
