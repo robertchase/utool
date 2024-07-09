@@ -33,22 +33,25 @@ DATA_SPACES_NULLABLE_1 = [[""], [""], ["A"]]
 
 
 @pytest.mark.parametrize(
-    "data, cols, delim, nullable, result",
+    "data, cols, delim, nullable, strip, result",
     (
-        (DATA, ["1"], " ", False, DATA_1),
-        (DATA, ["1", "2", "3"], " ", False, DATA_123),
-        (DATA, ["3", "2", "1"], " ", False, DATA_321),
-        (DATA, ["1", "1"], " ", False, DATA_11),
-        (DATA, ["1", "-1"], " ", False, DATA_1_1),
-        (DATA_BAR, ["1", "2", "3"], "|", False, DATA_123),
-        (DATA_VARIABLE, ["1", "4+"], " ", False, DATA_VARIABLE_4),
-        (DATA_SPACES, ["1"], " ", True, DATA_1),
-        (DATA_SPACES, ["1"], " ", False, DATA_SPACES_NULLABLE_1),
+        (DATA, ["1"], None, False, False, DATA_1),
+        (DATA, ["1", "2", "3"], None, False, False, DATA_123),
+        (DATA, ["3", "2", "1"], None, False, False, DATA_321),
+        (DATA, ["1", "1"], None, False, False, DATA_11),
+        (DATA, ["1", "-1"], " ", False, False, DATA_1_1),
+        (DATA_VARIABLE, ["1", "4+"], None, False, False, DATA_VARIABLE_4),
+        (DATA_BAR, ["1", "2", "3"], "|", False, False, DATA_123),
+        (DATA_SPACES, ["1"], None, True, True, DATA_1),
+        (DATA_SPACES, ["1"], None, True, False, DATA_SPACES_NULLABLE_1),
+        (DATA_SPACES, ["1"], None, False, True, DATA_1),
+        (DATA_SPACES, ["1"], None, False, False, DATA_SPACES_NULLABLE_1),
     ),
 )
-def test_basic(data, cols, delim, nullable, result):
+# pylint: disable-next=too-many-arguments
+def test_basic(data, cols, delim, nullable, result, strip):
     """test split function"""
-    ans = list(ucol.split(data, cols, delim, nullable))
+    ans = list(ucol.split(data, cols, delim, nullable, strip))
     assert ans == result
 
 

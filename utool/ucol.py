@@ -64,25 +64,53 @@ def parse_indexes(indexes: list[str]) -> list[int | ColRange]:
     return _indexes
 
 
-def linesplitter(is_csv, delimiter, nullable):
-
+def linesplitter(
+    is_csv: bool,
+    delimiter: str,
+    nullable: bool,
+    strip: bool,
+) -> typing.Callable[[str], list[str]]:
+    """Return a function to split lines."""
     if is_csv:
+
         def _split(line):
+            """Use csv module."""
             return list(csv.reader([line]))[0]
+
     elif nullable and delimiter is None:
+
         def _split(line):
-            return re.split(r'\s+', line)
+            """Split on whitespace character."""
+            if strip:
+                line = line.strip()
+            return re.split(r"\s", line)
+
     elif nullable:
-        _delimiter = "\\" + delimiter + "+"
-        def _split(line):
-            return re.split(_delimiter, line.strip(delimiter))
-    elif delimiter is None:
-        def _split(line):
-            return line.split()
-    else:
         _delimiter = "\\" + delimiter
+
         def _split(line):
-            return re.split("\\" + delimiter, line)
+            """Split on delimiter character."""
+            if strip:
+                line = line.strip(delimiter)
+            return re.split(_delimiter, line)
+
+    elif delimiter is None:
+
+        def _split(line):
+            """Split on whitespace characters."""
+            if strip:
+                line = line.strip()
+            return re.split(r"\s+", line)
+
+    else:
+        _delimiter = "\\" + delimiter + "+"
+
+        def _split(line):
+            """Split on delimter characters."""
+            if strip:
+                line = line.strip(delimiter)
+            return re.split(_delimiter, line)
+
     return _split
 
 
@@ -91,6 +119,7 @@ def split(  # pylint: disable=too-many-arguments
     indexes: list[str],
     delimiter: str = None,
     nullable: bool = False,
+    strip: bool = False,
     strict: bool = False,
     is_csv: bool = False,
 ) -> typing.Iterator[list[str]]:
@@ -108,11 +137,12 @@ def split(  # pylint: disable=too-many-arguments
                     empty columns unless nullable=True
                 if None, split on whitespace
     nullable - control parsing of multiple delimiters (see delimiter)
+    strip - strip leading and trailing delimiters from line
     strict - if True, stop on rows that have too few columns, else skip
     is_csv - if True, parse each line with csv reader
     """
     indexes = parse_indexes(indexes)
-    splitter = linesplitter(is_csv, delimiter, nullable)
+    splitter = linesplitter(is_csv, delimiter, nullable, strip)
 
     for lineno, line in enumerate(data.splitlines(), start=1):
         cols = splitter(line)
@@ -140,8 +170,10 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="select columns from text")
     parser.add_argument(
-        "--delimiter", "-d", default=None,
-        help="input column delimiter, default=whitespace"
+        "--delimiter",
+        "-d",
+        default=None,
+        help="input column delimiter, default=whitespace",
     )
     parser.add_argument(
         "--output-delimiter",
@@ -176,6 +208,11 @@ if __name__ == "__main__":
         help="consecutive delimiters indicate multiple columns (default=False)",
     )
     parser.add_argument(
+        "--no-strip",
+        action="store_true",
+        help="don't strip leading and trailing delimiters from line (default=True)",
+    )
+    parser.add_argument(
         "--strict",
         "-s",
         action="store_true",
@@ -198,6 +235,7 @@ if __name__ == "__main__":
             args.columns,
             args.delimiter,
             not args.null_columns,
+            not args.no_strip,
             args.strict,
             args.csv,
         )
