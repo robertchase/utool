@@ -20,7 +20,7 @@ class ColRange:  # pylint: disable=too-few-public-methods
 
 def remove_comma(val: str) -> str:
     """remove commas and/or leading dollar signs ($) from numeric strings"""
-    if re.match(r"(\$\d*|\$?\d{1,3}(,\d{3})+)(\.\d+)?$", val):
+    if re.match(r"(-?\$\d*|\$?\d{1,3}(,\d{3})+)(\.\d+)?$", val):
         return val.replace("$", "").replace(",", "")
     return val
 

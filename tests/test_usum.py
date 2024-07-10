@@ -101,9 +101,11 @@ def test_delimiter(data, result):
         ("$1,2345.6", True, None),
         ("$123,456", False, (123456, 0)),
         ("$123,456.78", False, (123456.78, 2)),
+        ("-$123,456.78", False, (-123456.78, 2)),
     ),
 )
 def test_num(value, strict, result):
+    """Test parsing numbers."""
     if result:
         assert usum.num(value, strict) == result
     else:

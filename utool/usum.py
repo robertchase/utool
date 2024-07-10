@@ -16,7 +16,7 @@ def num(value, strict: bool) -> tuple[int | float, int]:
     returns (numeric value, precision)
     """
     if not strict:
-        if re.match(r"(\$\d*|\$?\d{1,3}(,\d{3})+)(\.\d+)?$", value):
+        if re.match(r"-?(\$\d*|\$?\d{1,3}(,\d{3})+)(\.\d+)?$", value):
             value = value.replace("$", "").replace(",", "")
     precision = 0
     try:
