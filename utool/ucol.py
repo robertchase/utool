@@ -119,7 +119,7 @@ def split(  # pylint: disable=too-many-arguments
     indexes: list[str],
     delimiter: str = None,
     nullable: bool = False,
-    strip: bool = False,
+    strip: bool = True,
     strict: bool = False,
     is_csv: bool = False,
 ) -> typing.Iterator[list[str]]:
@@ -210,7 +210,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--no-strip",
         action="store_true",
-        help="don't strip leading and trailing delimiters from line (default=True)",
+        help="don't strip leading and trailing delimiters from line",
     )
     parser.add_argument(
         "--strict",

@@ -95,6 +95,9 @@ ucol [-dDns] column-numbers [filename]
                       delimiter. If null columns are allowed, each column 
                       delimiter starts a new column, and sequential delimiters
                       indicate zero-length columns.
+                      
+  --no-strip          don't strip leading and trailing delimiters from line
+                      (default=False, in other words, strip happens by default)
 
   -s                  handle errors strictly
   --strict
