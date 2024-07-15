@@ -71,6 +71,12 @@ def linesplitter(
     strip: bool,
 ) -> typing.Callable[[str], list[str]]:
     """Return a function to split lines."""
+
+    def regex_delimiter(delimiter):
+        if delimiter == "^":
+            delimiter = r"\^"
+        return f"[{delimiter}]"
+
     if is_csv:
 
         def _split(line):
@@ -86,7 +92,7 @@ def linesplitter(
             return re.split(r"\s", line)
 
     elif nullable:
-        _delimiter = "\\" + delimiter
+        _delimiter = regex_delimiter(delimiter)
 
         def _split(line):
             """Split on delimiter character."""
@@ -103,10 +109,10 @@ def linesplitter(
             return re.split(r"\s+", line)
 
     else:
-        _delimiter = "\\" + delimiter + "+"
+        _delimiter = regex_delimiter(delimiter) + "+"
 
         def _split(line):
-            """Split on delimter characters."""
+            """Split on delimiter characters."""
             if strip:
                 line = line.strip(delimiter)
             return re.split(_delimiter, line)
@@ -234,7 +240,7 @@ if __name__ == "__main__":
             sys.stdin.read(),
             args.columns,
             args.delimiter,
-            not args.null_columns,
+            args.null_columns,
             not args.no_strip,
             args.strict,
             args.csv,

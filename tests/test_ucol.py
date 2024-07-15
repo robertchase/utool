@@ -17,7 +17,13 @@ DATA_11 = [["1", "1"], ["4", "4"], ["A", "A"]]
 
 DATA_1_1 = [["1", "3"], ["4", "6"], ["A", "C"]]
 
-DATA_BAR = "1|2|3\n" + "4|5|6\n" + "A|B|C"
+DATA_BAR = "1||2|3\n" + "4||5|6\n" + "A||B|C"
+
+DATA_123_NULL = [["1", "", "2"], ["4", "", "5"], ["A", "", "B"]]
+
+DATA_CARET = "^^1^2^3\n" + "4^5^6\n" + "A^B^C"
+
+DATA_CARET_NOSTRIP = [["", "1", "2"], ["4", "5", "6"], ["A", "B", "C"]]
 
 DATA_VARIABLE = "1 2 3 4 5 6\n" + "A B C D\n" + "9 8 7 6 5 4 3 2 1 0"
 
@@ -42,6 +48,9 @@ DATA_SPACES_NULLABLE_1 = [[""], [""], ["A"]]
         (DATA, ["1", "-1"], " ", False, False, DATA_1_1),
         (DATA_VARIABLE, ["1", "4+"], None, False, False, DATA_VARIABLE_4),
         (DATA_BAR, ["1", "2", "3"], "|", False, False, DATA_123),
+        (DATA_BAR, ["1", "2", "3"], "|", True, False, DATA_123_NULL),
+        (DATA_CARET, ["1", "2", "3"], "^", False, False, DATA_CARET_NOSTRIP),
+        (DATA_CARET, ["1", "2", "3"], "^", False, True, DATA_123),
         (DATA_SPACES, ["1"], None, True, True, DATA_1),
         (DATA_SPACES, ["1"], None, True, False, DATA_SPACES_NULLABLE_1),
         (DATA_SPACES, ["1"], None, False, True, DATA_1),
@@ -49,7 +58,7 @@ DATA_SPACES_NULLABLE_1 = [[""], [""], ["A"]]
     ),
 )
 # pylint: disable-next=too-many-arguments
-def test_basic(data, cols, delim, nullable, result, strip):
+def test_basic(data, cols, delim, nullable, strip, result):
     """test split function"""
     ans = list(ucol.split(data, cols, delim, nullable, strip))
     assert ans == result
