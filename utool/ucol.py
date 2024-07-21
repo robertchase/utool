@@ -234,7 +234,7 @@ if __name__ == "__main__":
     if args.to_sc:
         args.un_comma = True
     if args.to_json:
-        json_result = []
+        print("[", end="")
     for row_number, response in enumerate(
         split(
             sys.stdin.read(),
@@ -249,14 +249,16 @@ if __name__ == "__main__":
         if args.un_comma:
             response = [remove_comma(item) for item in response]
         if args.to_json:
-            if json_result:
-                json_result.append(dict(zip(json_result[0], response)))
+            if row_number == 0:
+                json_keys = response
             else:
-                json_result.append(response)
+                if row_number > 1:
+                    print(",", end="")
+                print(json.dumps(dict(zip(json_keys, response))), end="")
         elif args.to_sc:
             for sc_line in row_to_sc(response, row_number):
                 print(sc_line)
         else:
             print(args.output_delimiter.join(response))
     if args.to_json:
-        print(json.dumps(json_result[1:]))
+        print("]")
