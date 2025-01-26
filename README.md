@@ -7,7 +7,7 @@ Cli tools for manipulating text.
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](https://opensource.org/license/mit/)
 [![0 dependencies!](https://0dependencies.dev/0dependencies.svg)](https://0dependencies.dev)
 
-## Introduction
+# Introduction
 
 In the spirit of small and focused command-line programs that comprise
 the (\*)nix shell,
@@ -112,7 +112,7 @@ ucol [-dDns] column-numbers [filename]
                       is set, this condition will cause the program to stop.
 ```
 
-# usum
+## usum
 
 Sum columns in a file.
 
@@ -343,7 +343,7 @@ upar [-li] [groupby [groupby ...]]
   --indent  (default indent of first line)
 ```
 
-## Installation
+# Installation
 
 1. clone the repo
 2. `pip install .` from the repo's top level
