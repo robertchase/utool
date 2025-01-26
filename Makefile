@@ -13,7 +13,7 @@ test:
 
 .PHONY: lint
 lint:
-	$(BIN)/pylint $(NAME) tests
+	$(BIN)/ruff check $(NAME) tests
 
 .PHONY: black
 black:
@@ -21,10 +21,10 @@ black:
 
 .PHONY: bump
 bump:
-	$(eval TMP := $(shell mktemp tmp.setup.XXXXXX))
-	@awk '$$1=="version"{split($$3,n,".");$$0=sprintf("version = %d.%d.%d",n[1],n[2],n[3]+1)}{print}' setup.cfg > $(TMP)
-	@mv $(TMP) setup.cfg
-	@grep version setup.cfg
+	$(eval TMP := $(shell mktemp tmp.pyproject.XXXXXX))
+	@awk '$$1=="version"{split($$3,n,".");$$0=sprintf("version = %d.%d.%d",n[1],n[2],n[3]+1)}{print}' pyproject.toml > $(TMP)
+	@mv $(TMP) pyproject.toml
+	@grep ^version\ = pyproject.toml
 
 .PHONY: bin
 bin:

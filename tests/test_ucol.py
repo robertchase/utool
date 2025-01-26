@@ -57,7 +57,7 @@ DATA_SPACES_NULLABLE_1 = [[""], [""], ["A"]]
         (DATA_SPACES, ["1"], None, False, False, DATA_SPACES_NULLABLE_1),
     ),
 )
-# pylint: disable-next=too-many-arguments
+# pylint: disable-next=too-many-arguments,too-many-positional-arguments
 def test_basic(data, cols, delim, nullable, strip, result):
     """test split function"""
     ans = list(ucol.split(data, cols, delim, nullable, strip))

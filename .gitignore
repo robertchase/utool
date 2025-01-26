@@ -4,3 +4,5 @@ setup.sh
 *.pyc
 .venv
 tmp*
+*.egg-info
+build

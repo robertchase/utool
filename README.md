@@ -1,6 +1,12 @@
 # utool
 Cli tools for manipulating text.
 
+[![Testing: pytest](https://img.shields.io/badge/testing-pytest-yellow)](https://docs.pytest.org)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](https://opensource.org/license/mit/)
+[![0 dependencies!](https://0dependencies.dev/0dependencies.svg)](https://0dependencies.dev)
+
 ## Introduction
 
 In the spirit of small and focused command-line programs that comprise
@@ -336,3 +342,8 @@ upar [-li] [groupby [groupby ...]]
   -in       indent lines by 'n', included in line length
   --indent  (default indent of first line)
 ```
+
+## Installation
+
+1. clone the repo
+2. `pip install .` from the repo's top level

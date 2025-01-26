@@ -1,5 +1,7 @@
-#! /usr/bin/env python3
 """Sum by column CLI utility"""
+
+import argparse
+import sys
 import re
 
 
@@ -134,7 +136,7 @@ def main():
                 line = args.delimiter.join(n for n in val)
                 sys.stdout.write(f"{key}{args.delimiter}{line}\n")
         else:
-            _, val = list(groups.items())[0]
+            _, val = next(iter(groups.items()))
             sys.stdout.write(args.delimiter.join(n for n in val))
     else:
         total = sum_all(sys.stdin, args.delimiter, args.strict)
@@ -142,7 +144,4 @@ def main():
 
 
 if __name__ == "__main__":
-    import argparse
-    import sys
-
     main()

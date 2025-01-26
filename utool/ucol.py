@@ -1,10 +1,12 @@
-#! /usr/bin/env python3
 """Split text into columns."""
+
+import argparse
 import csv
 import json
 import re
-import typing
 import string
+import sys
+import typing
 
 
 class UcolException(Exception):
@@ -81,7 +83,7 @@ def linesplitter(
 
         def _split(line):
             """Use csv module."""
-            return list(csv.reader([line]))[0]
+            return next(iter(csv.reader([line])))
 
     elif nullable and delimiter is None:
 
@@ -120,10 +122,10 @@ def linesplitter(
     return _split
 
 
-def split(  # pylint: disable=too-many-arguments
+def split(  # pylint: disable=too-many-positional-arguments,too-many-arguments
     data: typing.TextIO,
     indexes: list[str],
-    delimiter: str = None,
+    delimiter: str | None = None,
     nullable: bool = False,
     strip: bool = True,
     strict: bool = False,
@@ -170,10 +172,8 @@ def split(  # pylint: disable=too-many-arguments
             yield result
 
 
-if __name__ == "__main__":
-    import argparse
-    import sys
-
+def main():
+    """Main handler."""
     parser = argparse.ArgumentParser(description="select columns from text")
     parser.add_argument(
         "--delimiter",
@@ -254,7 +254,7 @@ if __name__ == "__main__":
             else:
                 if row_number > 1:
                     print(",", end="")
-                print(json.dumps(dict(zip(json_keys, response))), end="")
+                print(json.dumps(dict(zip(json_keys, response, strict=False))), end="")
         elif args.to_sc:
             for sc_line in row_to_sc(response, row_number):
                 print(sc_line)
@@ -262,3 +262,7 @@ if __name__ == "__main__":
             print(args.output_delimiter.join(response))
     if args.to_json:
         print("]")
+
+
+if __name__ == "__main__":
+    main()

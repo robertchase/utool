@@ -1,6 +1,8 @@
-#! /usr/bin/env python3
 """format text into paragraphs"""
+
+import argparse
 import re
+import sys
 
 
 def get_indent(indent, lines):
@@ -62,13 +64,15 @@ def paragraph(data, columns=80, indent=None):
             line = ""
 
 
-if __name__ == "__main__":
-    import argparse
-    import sys
-
+def main():
+    """Main handler."""
     parser = argparse.ArgumentParser(description="break text into paragraphs")
     parser.add_argument("--length", "-l", type=int, default=80)
     parser.add_argument("--indent", "-i", type=int, default=None)
     args = parser.parse_args()
     for text in paragraph(sys.stdin.read(), args.length, args.indent):
         print(text)
+
+
+if __name__ == "__main__":
+    main()
