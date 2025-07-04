@@ -60,7 +60,28 @@ DATA_SPACES_NULLABLE_1 = [[""], [""], ["A"]]
 # pylint: disable-next=too-many-arguments,too-many-positional-arguments
 def test_basic(data, cols, delim, nullable, strip, result):
     """test split function"""
+    cols = [ucol.column_specifier(col) for col in cols]
     ans = list(ucol.split(data, cols, delim, nullable, strip))
+    assert ans == result
+
+
+DATA_DATE = "2025-01-02 A\n2026-03-04 B"
+
+
+@pytest.mark.parametrize(
+    "data, cols, result",
+    (
+        (DATA_DATE, ["1[1,7]", "2"], [["2025-01", "A"], ["2026-03", "B"]]),
+        (DATA_DATE, ["1[,7]", "2"], [["2025-01", "A"], ["2026-03", "B"]]),
+        (DATA_DATE, ["1[6]"], [["01-02"], ["03-04"]]),
+        (DATA_DATE, ["1[6,100]"], [["01-02"], ["03-04"]]),
+        (DATA_DATE, ["1[6,7]"], [["01"], ["03"]]),
+    ),
+)
+def test_substring(data, cols, result):
+    """Test substring operation."""
+    cols = [ucol.column_specifier(col) for col in cols]
+    ans = list(ucol.split(data, cols))
     assert ans == result
 
 
@@ -83,6 +104,7 @@ DATA_CSV_3 = [["3"], ["6"], ["C"]]
 )
 def test_csv(data, cols, result):
     """test csv option"""
+    cols = [ucol.column_specifier(col) for col in cols]
     ans = list(lin for lin in ucol.split(data, cols, is_csv=True))
     assert ans == result
 
@@ -95,11 +117,13 @@ DATA_SPARSE_2 = [["2"], ["5"]]
 def test_strict():
     """test strict switch"""
 
-    ans = list(lin for lin in ucol.split(DATA_SPARSE, ["2"]))
+    cols = [ucol.column_specifier("2")]
+
+    ans = list(lin for lin in ucol.split(DATA_SPARSE, cols))
     assert ans == DATA_SPARSE_2
 
     with pytest.raises(ucol.UcolException):
-        list(ucol.split(DATA_SPARSE, ["2"], strict=True))
+        list(ucol.split(DATA_SPARSE, cols, strict=True))
 
 
 @pytest.mark.parametrize(

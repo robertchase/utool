@@ -13,13 +13,6 @@ class UcolException(Exception):
     """ucol specific exception."""
 
 
-class ColRange:  # pylint: disable=too-few-public-methods
-    """represent a range of columns starting at 'start'"""
-
-    def __init__(self, start: int):
-        self.start = start
-
-
 def remove_comma(val: str) -> str:
     """remove commas and/or leading dollar signs ($) from numeric strings"""
     if re.match(r"(-?\$\d*|\$?\d{1,3}(,\d{3})+)(\.\d+)?$", val):
@@ -46,24 +39,6 @@ def row_to_sc(row: list[str], row_num: int) -> typing.Iterator[str]:
             yield f"let {cell_number} = {cell}"
         except ValueError:
             yield f'leftstring {cell_number} = "{cell}"'
-
-
-def parse_indexes(indexes: list[str]) -> list[int | ColRange]:
-    """normalize column indexes"""
-    _indexes = []
-    for index in indexes:
-        if match := re.match(r"(\d+)\+$", index):
-            col = ColRange(int(match.group(1)) - 1)
-            _indexes.append(col)
-        else:
-            try:
-                index = int(index)
-            except ValueError as exc:
-                raise UcolException(f"column number ({index}) must be numeric") from exc
-            if index > 0:
-                index -= 1
-            _indexes.append(index)
-    return _indexes
 
 
 def linesplitter(
@@ -122,9 +97,51 @@ def linesplitter(
     return _split
 
 
+class ColumnSelector:
+    """Callable that returns a column by index."""
+
+    def __init__(self, index):
+        self.index = int(index)
+        if self.index > 0:
+            self.index -= 1
+
+    def __call__(self, columns: list[str]) -> list[str]:
+        return [columns[self.index]]
+
+
+class ColumnSelectorRange(ColumnSelector):
+    """Callable that returns the set of columns beginning with an index."""
+
+    def __call__(self, columns: list[str]) -> list[str]:
+        return columns[self.index :]
+
+
+class ColumnSelectorSlice(ColumnSelector):
+    """Callable that returns a substring of a column at index."""
+
+    def __init__(self, index, start, end):
+        super().__init__(index)
+        if start:
+            self.start = int(start) - 1
+        else:
+            self.start = None
+        if end:
+            self.end = int(end)
+        else:
+            self.end = None
+
+    def __call__(self, columns: list[str]) -> list[str]:
+        column = columns[self.index]
+        if self.start is None:
+            return [column[: self.end]]
+        if self.end is None:
+            return [column[self.start :]]
+        return [column[self.start : self.end]]
+
+
 def split(  # pylint: disable=too-many-positional-arguments,too-many-arguments
     data: typing.TextIO,
-    indexes: list[str],
+    indexes: list[ColumnSelector],
     delimiter: str | None = None,
     nullable: bool = False,
     strip: bool = True,
@@ -134,12 +151,7 @@ def split(  # pylint: disable=too-many-positional-arguments,too-many-arguments
     """Split text into columns.
 
     data - open file
-    indexes - list of column numbers to extract from each line in data
-              these can be:
-                  integer (first column is "1", second is "2", etc)
-                  negative integer (count from right)
-                  <integer>+ (all columns including and after "integer")
-              columns can repeat and be in any order
+    indexes - list of ColumnSelectors
     delimiter - separator between input columns
                 multiple sequential delimiters will result in multiple
                     empty columns unless nullable=True
@@ -149,7 +161,6 @@ def split(  # pylint: disable=too-many-positional-arguments,too-many-arguments
     strict - if True, stop on rows that have too few columns, else skip
     is_csv - if True, parse each line with csv reader
     """
-    indexes = parse_indexes(indexes)
     splitter = linesplitter(is_csv, delimiter, nullable, strip)
 
     for lineno, line in enumerate(data.splitlines(), start=1):
@@ -157,10 +168,7 @@ def split(  # pylint: disable=too-many-positional-arguments,too-many-arguments
         result = []
         for index in indexes:
             try:
-                if isinstance(index, ColRange):
-                    result.extend(cols[index.start :])
-                else:
-                    result.append(cols[index])
+                result.extend(index(cols))
             except IndexError:
                 if not strict:
                     result = None
@@ -170,6 +178,32 @@ def split(  # pylint: disable=too-many-positional-arguments,too-many-arguments
                 ) from None
         if result:
             yield result
+
+
+def column_specifier(column: str):
+    """Return a ColumnSelector for 'column'.
+
+    The ColumnSelector is a callable that, depending on the value of 'column'
+    does one of:
+
+    * if column is a number, the selector will return the numbereth column
+      (starting with one)
+    * if column is a negative number, the selector will select a column
+      starting from the right
+    * if column is a number followed by a "+", the selector will select the
+      column and all following columns
+    * if the column is a number followed by [n,m], the selector will select the
+      substring from n to m of the numbereth column (n and m start with 1)
+    """
+
+    if re.match(r"-?\d+$", column):
+        return ColumnSelector(column)
+    if match := re.match(r"(\d+)\+$", column):
+        return ColumnSelectorRange(match.group(1))
+    if match := re.match(r"(\d+)\[(\d*)(?:,(\d+))?\]$", column):
+        index, start, end = match.groups()
+        return ColumnSelectorSlice(index, start, end)
+    raise argparse.ArgumentTypeError("Invalid column specification")
 
 
 def main():
@@ -226,9 +260,10 @@ def main():
     )
     parser.add_argument(
         "columns",
+        type=column_specifier,
         default=["1+"],
         nargs="*",
-        help="list of column numbers, e.g. 1 2 -1 5+ (default=1+)",
+        help="list of column numbers, e.g. 1 2 -1 5+ 1[1,5] (default=1+)",
     )
     args = parser.parse_args()
     if args.to_sc:

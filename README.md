@@ -71,6 +71,22 @@ Jun 12 19:03 README.md
 Jun 12 18:42 ucol.py
 ```
 
+A substring of a column can be specified
+with a square bracket immediately following a column number.
+The square bracket contains a starting character (optional, default=1) and
+and ending character (optional, default is the end of the column value).
+
+You may have to escape the square bracket characters, depending on your shell.
+
+```
+> ls -l | ucol 1[3,6]
+
+w-r
+w-r
+w--
+
+```
+
 If no columns are specified, all columns will be extracted (1+).
 
 ### syntax
