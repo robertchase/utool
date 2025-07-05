@@ -53,6 +53,16 @@ DATA_DELIMITER = (
 )
 
 
+DATA_COUNT = (
+    "A 1",
+    "B 2",
+    "B 10",
+    "A 3",
+    "B 4",
+    "C 10",
+)
+
+
 @pytest.mark.parametrize(
     "data, cols, result",
     (
@@ -66,6 +76,22 @@ DATA_DELIMITER = (
 def test_group_by(data, cols, result):
     """test group-by function"""
     assert usum.group_by(data, cols) == result
+
+
+@pytest.mark.parametrize(
+    "data, cols, result",
+    (
+        (DATA, [1], {"A": ["2", "4"], "B": ["2", "6"]}),
+        (DATA_2_KEY, [1, 2], {"A A": ["2", "4"], "A B": ["2", "6"]}),
+        (DATA_2_KEY_ORDER, [1, 3], {"A A": ["2", "4"], "A B": ["2", "6"]}),
+        (DATA_2_VAL, [1], {"A": ["2", "4", "40"], "B": ["2", "6", "60"]}),
+        (DATA_FLOAT, [1], {"A": ["2", "4.4"], "B": ["2", "6.6"]}),
+        (DATA_COUNT, [1], {"A": ["2", "4"], "B": ["3", "16"], "C": ["1", "10"]}),
+    ),
+)
+def test_group_by_with_count(data, cols, result):
+    """test group-by function"""
+    assert usum.group_by(data, cols, count=True) == result
 
 
 @pytest.mark.parametrize(

@@ -1,6 +1,7 @@
 """Sum by column CLI utility"""
 
 import argparse
+import collections
 import sys
 import re
 
@@ -39,7 +40,7 @@ def num(value, strict: bool) -> tuple[int | float, int]:
         raise ValueError(f"could not convert '{value}' to number") from None
 
 
-def group_by(data, cols, delim=" ", strict: bool = False):
+def group_by(data, cols, delim=" ", strict: bool = False, count: bool = False):
     """Sum data by specified columns
 
     data -- iterable of lines of data to be summed
@@ -47,8 +48,10 @@ def group_by(data, cols, delim=" ", strict: bool = False):
             (other columns will be summed)
     delim -- column separator
     strict -- if True, expect data to be clean and well-shaped
+    count -- if True, prepend list of sums with count for each output line
     """
     groups = {}
+    counts = collections.Counter()
     precision = None
     for linenum, line in enumerate(data, start=1):
         toks = line.split(delim)
@@ -68,6 +71,7 @@ def group_by(data, cols, delim=" ", strict: bool = False):
                 max(pre, val[1]) for pre, val in zip(precision, values, strict=False)
             ]
 
+            counts[key] += 1
             if sums is None:
                 sums = [0] * len(values)
             groups[key] = [
@@ -83,7 +87,7 @@ def group_by(data, cols, delim=" ", strict: bool = False):
             f"{{:.{prec}f}}".format(col)
             for col, prec in zip(sums, precision, strict=False)
         ]
-        groups[key] = fmt
+        groups[key] = [str(counts[key]), *fmt] if count else fmt
 
     return groups
 
@@ -120,6 +124,12 @@ def main():
         help="input/output column delimiter, default=' '",
     )
     parser.add_argument(
+        "--count",
+        "-c",
+        action="store_true",
+        help="add count of items included in sum for each output line",
+    )
+    parser.add_argument(
         "--strict",
         "-s",
         action="store_true",
@@ -130,7 +140,9 @@ def main():
     if args.groupby:
         if len(args.groupby) == 1 and args.groupby[0] == 0:
             args.groupby = []
-        groups = group_by(sys.stdin, args.groupby, args.delimiter, args.strict)
+        groups = group_by(
+            sys.stdin, args.groupby, args.delimiter, args.strict, args.count
+        )
         if args.groupby:
             for key, val in groups.items():
                 line = args.delimiter.join(n for n in val)

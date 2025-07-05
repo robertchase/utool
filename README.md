@@ -171,6 +171,19 @@ AUG 2001 2617.36 -785.21
 SEP 2001 2070.1 -621.03
 ```
 
+Add a count for each row:
+
+```
+home/test:~> cat data | usum 1 2 -c
+2000 AUG 1 3698.14 -1109.44
+2000 SEP 1 870.96 -261.29
+2001 AUG 2 2617.36 -785.21
+2001 SEP 1 2070.1 -621.03
+```
+
+The count of rows matching the group-by columns is inserted between
+the column values and the sums.
+
 Sum by just one column:
 
 ```
@@ -214,11 +227,15 @@ All the numeric tokens in the file are summed.
 
 ### syntax
 ```
-usum [-s] [groupby [groupby ...]]
+usum [-h] [--delimiter DELIMITER] [--count] [--strict] [groupby ...]
 ```
 
 ### options
 ```
+  --delimiter, -d DELIMITER
+            input/output column delimiter, default=' '
+  --count, -c           
+            add count of items included in sum for each output line
   -s        handle errors strictly
   --strict
             If a line is encountered that doesn't have the right number
