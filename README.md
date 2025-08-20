@@ -74,7 +74,9 @@ Jun 12 18:42 ucol.py
 A substring of a column can be specified
 with a square bracket immediately following a column number.
 The square bracket contains a starting character (optional, default=1) and
-and ending character (optional, default is the end of the column value).
+and ending character (optional, default is the end of the column value). Starting and ending characters can also be specified as negative numbers, which index from the right.
+
+To specify a substring using a negative column number, an underscore (_) must be used instead of a minus sign (-)&mdash;this is to avoid ambiguity with the option parsing. For example: `_2[1,2]` will grab the first two characters of the second column from the right.
 
 You may have to escape the square bracket characters, depending on your shell.
 
