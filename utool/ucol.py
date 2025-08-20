@@ -101,6 +101,8 @@ class ColumnSelector:
     """Callable that returns a column by index."""
 
     def __init__(self, index):
+        if index[0] == "_":
+            index = f"-{index[1:]}"
         self.index = int(index)
         if self.index > 0:
             self.index -= 1
@@ -122,11 +124,15 @@ class ColumnSelectorSlice(ColumnSelector):
     def __init__(self, index, start, end):
         super().__init__(index)
         if start:
-            self.start = int(start) - 1
+            self.start = int(start)
+            if self.start > 0:
+                self.start -= 1
         else:
             self.start = None
         if end:
             self.end = int(end)
+            if self.end < 0:
+                self.end += 1
         else:
             self.end = None
 
@@ -188,22 +194,26 @@ def column_specifier(column: str):
 
     * if column is a number, the selector will return the numbereth column
       (starting with one)
-    * if column is a negative number, the selector will select a column
-      starting from the right
+    * if column is a negative number (starts with a minus (-) or an underscore (_)),
+      the selector will select a column starting from the right
     * if column is a number followed by a "+", the selector will select the
       column and all following columns
     * if the column is a number followed by [n,m], the selector will select the
-      substring from n to m of the numbereth column (n and m start with 1)
+      substring from n to m of the numbereth column (n and m start with 1 when counting
+      from the left, or -1 when counting from the right)
+
+      if specifying a negative column number and a [n,m] selector, then an underscore
+      (_) must be used instead of a minus sign (-) as a prefix to the column number.
     """
 
-    if re.match(r"-?\d+$", column):
+    if re.match(r"[-_]?\d+$", column):
         return ColumnSelector(column)
     if match := re.match(r"(\d+)\+$", column):
         return ColumnSelectorRange(match.group(1))
-    if match := re.match(r"(\d+)\[(\d*)(?:,(\d+))?\]$", column):
+    if match := re.match(r"(_?\d+)\[(-?\d*)(?:,(-?\d+))?\]$", column):
         index, start, end = match.groups()
         return ColumnSelectorSlice(index, start, end)
-    raise argparse.ArgumentTypeError("Invalid column specification")
+    raise argparse.ArgumentTypeError(f"Invalid column specification: {column}")
 
 
 def main():
@@ -263,7 +273,7 @@ def main():
         type=column_specifier,
         default=["1+"],
         nargs="*",
-        help="list of column numbers, e.g. 1 2 -1 5+ 1[1,5] (default=1+)",
+        help="list of column numbers, e.g. 1 2 -1 5+ 1[1,5] _2[,7] (default=1+)",
     )
     args = parser.parse_args()
     if args.to_sc:
