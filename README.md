@@ -22,71 +22,76 @@ Select columns from a file.
 
 ### example
 
+here is some test data:
+
 ```
-> ls -l
+> cat data
+2000 AUG $3,698.14 -$1,109.44
+2000 SEP $870.96 -$261.29
+2001 AUG $1,676.56 -$502.97
+2001 AUG $940.80 -$282.24
+2001 SEP $2,070.10 -$621.03
+```
 
-total 40
--rw-r--r--   1 bob  staff   1068 Jun 12 05:38 LICENSE
--rw-------   1 bob  staff     81 Jun 12 05:45 Makefile
--rw-r--r--@  1 bob  staff    226 Jun 12 19:03 README.md
--rw-------@  1 bob  staff   4539 Jun 12 18:42 ucol.py
+select some columns: 
 
-> ls -l | ucol 5 1 5
-
-1068 -rw-r--r-- 1068
-81 -rw------- 81
-1045 -rw-r--r--@ 1045
-4539 -rw-------@ 4539
+```
+> cat data | ucol 2 1 2
+AUG 2000 AUG
+SEP 2000 SEP
+AUG 2001 AUG
+AUG 2001 AUG
+SEP 2001 SEP
 ```
 
 Here `ucol` is used
 to extract a few columns
-from the results of the `ls` command.
+from the data file.
 Note that the columns can be specified in any order,
 and can be specified more than once.
 
 Negative values can be specified as column numbers; these
-will index from the right.
+will index from the right:
 
 ```
-> ls -l | ucol -1
-
-40
-LICENSE
-Makefile
-README.md
-ucol.py
+> cat data | ucol -1
+-$1,109.44
+-$261.29
+-$502.97
+-$282.24
+-$621.03
 ```
 
 A range of column numbers can be specified
 with a plus sign (+) immediately following a column number&mdash;this will
-indicate the column number plus all subsequent columns.
+indicate the column number plus all subsequent columns:
 
 ```
-> ls -l | ucol 6+
-
-Jun 12 05:38 LICENSE
-Jun 12 05:45 Makefile
-Jun 12 19:03 README.md
-Jun 12 18:42 ucol.py
+> cat data | ucol 3+
+$3,698.14 -$1,109.44
+$870.96 -$261.29
+$1,676.56 -$502.97
+$940.80 -$282.24
+$2,070.10 -$621.03
 ```
 
 A substring of a column can be specified
 with a square bracket immediately following a column number.
-The square bracket contains a starting character (optional, default=1) and
-and ending character (optional, default is the end of the column value). Starting and ending characters can also be specified as negative numbers, which index from the right.
+For example: `2[5,7]` will select the 5th, 6th, and 7th characters from the second column.
+The square bracket contains a starting character (optional, default=1), a comma, and
+an ending character (optional, default is the end of the column value). Starting and ending characters can also be specified as negative numbers, which index from the right.
 
-To specify a substring using a negative column number, an underscore (_) must be used instead of a minus sign (-)&mdash;this is to avoid ambiguity with the option parsing. For example: `_2[1,2]` will grab the first two characters of the second column from the right.
+To specify a substring using a negative column number, an underscore (_) must be used instead of a minus sign (-)&mdash;this is to avoid ambiguity during option parsing. For example: `_2[,3]` will grab the first three characters from the second column from the right.
 
-You may have to escape the square bracket characters, depending on your shell.
+You may have to escape (or quote) the square bracket characters, depending on your shell:
 
 ```
-> ls -l | ucol 1[3,6]
-
-w-r
-w-r
-w--
-
+> cat data | ucol '_2[2,-4]'
+3,698
+870
+1,676
+940
+2,070
 ```
 
 If no columns are specified, all columns will be extracted (1+).
@@ -139,7 +144,7 @@ Sum columns in a file.
 Here is some test data:
 
 ```
-home/test:~> cat data
+> cat data
 2000 AUG $3,698.14 -$1,109.44
 2000 SEP $870.96 -$261.29
 2001 AUG $1,676.56 -$502.97
@@ -150,7 +155,7 @@ home/test:~> cat data
 Sum by the first two columns (think of the `SQL groupby` functionality):
 
 ```
-home/test:~> cat data | usum 1 2
+> cat data | usum 1 2
 2000 AUG 3698.14 -1109.44
 2000 SEP 870.96 -261.29
 2001 AUG 2617.36 -785.21
@@ -166,7 +171,7 @@ would be `2001 AUG 2617.3599999999997 -785.21`).
 The specified order of the columns is preserved:
 
 ```
-home/test:~> cat data | usum 2 1
+> cat data | usum 2 1
 AUG 2000 3698.14 -1109.44
 SEP 2000 870.96 -261.29
 AUG 2001 2617.36 -785.21
@@ -176,7 +181,7 @@ SEP 2001 2070.1 -621.03
 Add a count for each row:
 
 ```
-home/test:~> cat data | usum 1 2 -c
+> cat data | usum 1 2 -c
 2000 AUG 1 3698.14 -1109.44
 2000 SEP 1 870.96 -261.29
 2001 AUG 2 2617.36 -785.21
@@ -189,7 +194,7 @@ the column values and the sums.
 Sum by just one column:
 
 ```
-home/test:~> cat data | usum 1
+> cat data | usum 1
 2000 0 4569.1 -1370.73
 2001 0 4687.46 -1406.24
 ```
@@ -199,14 +204,14 @@ Notice that the non-numeric values in the second column are treated as zero.
 Combine with `ucol`:
 
 ```
-home/test:~> cat data | ucol 2 3 4
+> cat data | ucol 2 3 4
 AUG $3,698.14 -$1,109.44
 SEP $870.96 -$261.29
 AUG $1,676.56 -$502.97
 AUG $940.80 -$282.24
 SEP $2,070.10 -$621.03
   
-home/test:~> cat data | ucol 2 3 4 | usum 1
+> cat data | ucol 2 3 4 | usum 1
 AUG 6315.5 -1894.65
 SEP 2941.06 -882.32
 ```
@@ -214,14 +219,14 @@ SEP 2941.06 -882.32
 Sum each column into a single line (group by zero/nothing):
 
 ```
-home/test:~> cat data |  usum 0
+> cat data |  usum 0
 10003 0 9256.56 -2776.97
 ```
 
 Sum all the numbers in a file by not providing a column number:
 
 ```
-home/test:~> cat data | usum
+> cat data | usum
 16482.59
 ```
 
@@ -259,7 +264,7 @@ Format text into paragraphs.
 Here is some test data:
 
 ```
-cat test_data.txt 
+> cat test_data.txt 
 
 When in the Course of human events, it
 becomes necessary for one people to
@@ -277,7 +282,7 @@ them to the separation.
 Format the test data into paragraphs of lines not exceeding 80 characters:
 
 ```
-upar < test_data.txt
+> upar < test_data.txt
 
 When in the Course of human events, it becomes necessary for one people to
 dissolve the political bands which have connected them with another, and to
@@ -290,7 +295,7 @@ them to the separation.
 Format the test data into paragraphs of lines not exceeding 60 characters:
 
 ```
-upar -l60 < test_data.txt
+> upar -l60 < test_data.txt
 
 When in the Course of human events, it becomes necessary for
 one people to dissolve the political bands which have
@@ -304,7 +309,7 @@ declare the causes which impel them to the separation.
 Add an indent:
 
 ```
-upar -i5 < test_data.txt
+> upar -i5 < test_data.txt
 
      When in the Course of human events, it becomes necessary for one people to
      dissolve the political bands which have connected them with another, and to
@@ -317,7 +322,7 @@ upar -i5 < test_data.txt
 Multi-paragraph:
 
 ```
-upar -i5 -l 60 < test_data_2.txt
+> upar -i5 -l 60 < test_data_2.txt
 
      When in the Course of human events, it becomes
      necessary for one people to dissolve the political
@@ -338,7 +343,7 @@ If `indent` is not specified, then the indent of the
 first line is used:
 
 ```
-cat test_data_3.txt
+> cat test_data_3.txt
 
     We hold these truths to be self-evident,
 that all men are created equal,
@@ -346,7 +351,7 @@ that all men are created equal,
   that among these are Life,
 Liberty and the pursuit of Happiness.
     
-upar < test_data_3.txt
+> upar < test_data_3.txt
 
     We hold these truths to be self-evident, that all men are created equal,
     that they are endowed by their Creator with certain unalienable Rights, that
