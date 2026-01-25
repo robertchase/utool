@@ -15,7 +15,7 @@ class UcolException(Exception):
 
 def remove_comma(val: str) -> str:
     """remove commas and/or leading dollar signs ($) from numeric strings"""
-    if re.match(r"(-?\$\d*|\$?\d{1,3}(,\d{3})+)(\.\d+)?$", val):
+    if re.match(r"-?(\$\d*|\$?\d{1,3}(,\d{3})+)(\.\d+)?$", val):
         return val.replace("$", "").replace(",", "")
     return val
 
@@ -182,7 +182,7 @@ def split(  # pylint: disable=too-many-positional-arguments,too-many-arguments
                 raise UcolException(
                     f"line={lineno}:'{line}' does not have enough columns"
                 ) from None
-        if result:
+        if result is not None:
             yield result
 
 
@@ -247,6 +247,11 @@ def main():
         help="output as json (list of dict) using first row as keys",
     )
     parser.add_argument(
+        "--pretty-json",
+        action="store_true",
+        help="output as formatted json (enables --to-json)",
+    )
+    parser.add_argument(
         "--to-sc",
         action="store_true",
         help="output as sc (spreadsheet calculator) file (enables un-comma)",
@@ -271,18 +276,28 @@ def main():
     parser.add_argument(
         "columns",
         type=column_specifier,
-        default=["1+"],
         nargs="*",
         help="list of column numbers, e.g. 1 2 -1 5+ 1[1,5] _2[,7] (default=1+)",
     )
+    parser.add_argument(
+        "-f",
+        "--file",
+        type=argparse.FileType("r"),
+        default=sys.stdin,
+        help="input file (default=stdin)",
+    )
     args = parser.parse_args()
+    if not args.columns:
+        args.columns = [column_specifier("1+")]
     if args.to_sc:
         args.un_comma = True
-    if args.to_json:
-        print("[", end="")
+    if args.pretty_json:
+        args.to_json = True
+    json_rows = []
+    json_keys = None
     for row_number, response in enumerate(
         split(
-            sys.stdin.read(),
+            args.file.read(),
             args.columns,
             args.delimiter,
             args.null_columns,
@@ -297,16 +312,15 @@ def main():
             if row_number == 0:
                 json_keys = response
             else:
-                if row_number > 1:
-                    print(",", end="")
-                print(json.dumps(dict(zip(json_keys, response, strict=False))), end="")
+                json_rows.append(dict(zip(json_keys, response, strict=False)))
         elif args.to_sc:
             for sc_line in row_to_sc(response, row_number):
                 print(sc_line)
         else:
             print(args.output_delimiter.join(response))
     if args.to_json:
-        print("]")
+        indent = 2 if args.pretty_json else None
+        print(json.dumps(json_rows, indent=indent))
 
 
 if __name__ == "__main__":

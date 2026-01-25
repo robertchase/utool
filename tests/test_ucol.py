@@ -144,6 +144,9 @@ def test_strict():
         ("$12", "12"),
         ("$12.34", "12.34"),
         ("$a", "$a"),
+        ("-$12,345.67", "-12345.67"),
+        ("-$12", "-12"),
+        ("-12,345", "-12345"),
     ),
 )
 def test_remove_comma(value, result):
@@ -164,3 +167,11 @@ def test_remove_comma(value, result):
 def test_as_alpha(value, result):
     """test base 26 conversion"""
     assert ucol.as_alpha(value) == result
+
+
+def test_empty_columns():
+    """test that empty column values are preserved"""
+    data = "a||b\nc||d"
+    cols = [ucol.column_specifier("2")]
+    ans = list(ucol.split(data, cols, delimiter="|", nullable=True))
+    assert ans == [[""], [""]]
