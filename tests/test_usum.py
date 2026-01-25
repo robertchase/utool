@@ -95,12 +95,17 @@ def test_group_by_with_count(data, cols, result):
 
 
 @pytest.mark.parametrize(
-    "data, result",
-    ((DATA_ZERO, "10.5"),),
+    "data, op, result",
+    (
+        (DATA_ZERO, "sum", "10.5"),
+        (DATA_ZERO, "avg", "2.6"),  # 10.5 / 4 = 2.625, rounded to 1 decimal
+        (DATA_ZERO, "min", "1.0"),  # precision from 4.5 applies
+        (DATA_ZERO, "max", "4.5"),
+    ),
 )
-def test_sum_all(data, result):
-    """test sum-all function"""
-    assert usum.sum_all(data) == result
+def test_agg_all(data, op, result):
+    """test agg-all function"""
+    assert usum.agg_all(data, op=op) == result
 
 
 @pytest.mark.parametrize(
@@ -110,6 +115,28 @@ def test_sum_all(data, result):
 def test_delimiter(data, result):
     """test non-space delimiter function"""
     assert usum.group_by(data, [], delim="|") == result
+
+
+DATA_AGG = (
+    "A 1 10",
+    "B 2 20",
+    "A 3 30",
+    "B 4 40",
+)
+
+
+@pytest.mark.parametrize(
+    "data, cols, op, result",
+    (
+        (DATA_AGG, [1], "sum", {"A": ["4", "40"], "B": ["6", "60"]}),
+        (DATA_AGG, [1], "avg", {"A": ["2", "20"], "B": ["3", "30"]}),
+        (DATA_AGG, [1], "min", {"A": ["1", "10"], "B": ["2", "20"]}),
+        (DATA_AGG, [1], "max", {"A": ["3", "30"], "B": ["4", "40"]}),
+    ),
+)
+def test_group_by_ops(data, cols, op, result):
+    """test group-by with different operations"""
+    assert usum.group_by(data, cols, op=op) == result
 
 
 @pytest.mark.parametrize(
