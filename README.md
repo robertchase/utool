@@ -98,7 +98,7 @@ If no columns are specified, all columns will be extracted (1+).
 
 ### syntax
 ```
-ucol [-dDns] column-numbers [filename]
+ucol [-dDnsf] column-numbers
 ```
 
 ### options
@@ -109,22 +109,27 @@ ucol [-dDns] column-numbers [filename]
   -Dc                 use 'c' as output column delimiter
   --output-delimiter  (default space)
 
+  -f FILE             read input from FILE
+  --file              (default stdin)
+
   --csv               parse lines as csv
-  
+
   --un-comma          remove commas and/or leading dollar sign ($) from numbers
-  
+
   --to-json           output as json (list of dict) using first row as keys
-  
+
+  --pretty-json       output as formatted json (enables --to-json)
+
   --to-sc             output as sc (spreadsheet calculator) format (enables --un-comma)
-  
+
   -n                  allow null columns
   --null-columns
                       Normally, when multiple column delimiters are
                       encountered in sequence, they are treated as a single
-                      delimiter. If null columns are allowed, each column 
+                      delimiter. If null columns are allowed, each column
                       delimiter starts a new column, and sequential delimiters
                       indicate zero-length columns.
-                      
+
   --no-strip          don't strip leading and trailing delimiters from line
                       (default=False, in other words, strip happens by default)
 
@@ -137,7 +142,7 @@ ucol [-dDns] column-numbers [filename]
 
 ## usum
 
-Sum columns in a file.
+Aggregate columns in a file (sum, average, min, max).
 
 ### example
 
@@ -232,17 +237,52 @@ Sum all the numbers in a file by not providing a column number:
 
 All the numeric tokens in the file are summed.
 
+Compute the average instead of sum:
+
+```
+> cat data | usum --avg 1 2
+2000 AUG 3698.14 -1109.44
+2000 SEP 870.96 -261.29
+2001 AUG 1308.68 -392.605
+2001 SEP 2070.1 -621.03
+```
+
+Find the minimum or maximum values:
+
+```
+> cat data | usum --min 1 2
+2000 AUG 3698.14 -1109.44
+2000 SEP 870.96 -261.29
+2001 AUG 940.8 -502.97
+2001 SEP 2070.1 -621.03
+
+> cat data | usum --max 1 2
+2000 AUG 3698.14 -1109.44
+2000 SEP 870.96 -261.29
+2001 AUG 1676.56 -282.24
+2001 SEP 2070.1 -621.03
+```
+
 ### syntax
 ```
-usum [-h] [--delimiter DELIMITER] [--count] [--strict] [groupby ...]
+usum [-h] [--delimiter DELIMITER] [--count] [--strict] [--avg|--min|--max] [-f FILE] [groupby ...]
 ```
 
 ### options
 ```
   --delimiter, -d DELIMITER
             input/output column delimiter, default=' '
-  --count, -c           
-            add count of items included in sum for each output line
+
+  -f FILE   read input from FILE
+  --file    (default stdin)
+
+  --count, -c
+            add count of items included in result for each output line
+
+  --avg     compute average instead of sum
+  --min     compute minimum instead of sum
+  --max     compute maximum instead of sum
+
   -s        handle errors strictly
   --strict
             If a line is encountered that doesn't have the right number
@@ -250,7 +290,7 @@ usum [-h] [--delimiter DELIMITER] [--count] [--strict] [groupby ...]
             to be summed is not a numerical value, it is treated as zero.
             If a column to be summed contains "$" or ",", these characters
             are ignored.
-            
+
             If the strict flag is set, any of these conditions will
             cause the program to stop.
 ```
@@ -358,6 +398,30 @@ Liberty and the pursuit of Happiness.
     among these are Life, Liberty and the pursuit of Happiness.
 ```
  
+Add a prefix to each line (useful for code comments):
+
+```
+> echo "This is a long comment that needs to wrap nicely" | upar -l 40 --prefix "# "
+# This is a long comment that needs to
+# wrap nicely
+```
+
+Use hanging indent for bullet points or lists:
+
+```
+> echo "* This is a bullet point that wraps to multiple lines" | upar -l 40 --hanging 2
+* This is a bullet point that wraps to
+  multiple lines
+```
+
+Combine prefix and hanging indent:
+
+```
+> echo "TODO: Fix the bug in the login flow that causes issues" | upar -l 35 --prefix "# " --hanging 6
+# TODO: Fix the bug in the login
+#       flow that causes issues
+```
+
 ### use with vi
 
 From `command` mode in `vi`, the next 10 lines can be formatted
@@ -371,16 +435,25 @@ This is helpful for cleaning up comment blocks or formatting simple text files.
 
 ### syntax
 ```
-upar [-li] [groupby [groupby ...]]
+upar [-liHpf]
 ```
 
 ### options
 ```
-  -ln       use 'n' as the max output line length
-  --length  (default 80)
-  
-  -in       indent lines by 'n', included in line length
-  --indent  (default indent of first line)
+  -ln         use 'n' as the max output line length
+  --length    (default 80)
+
+  -in         indent lines by 'n', included in line length
+  --indent    (default indent of first line)
+
+  -Hn         additional indent for continuation lines
+  --hanging   (default 0)
+
+  -p STRING   prepend STRING to each line
+  --prefix    (default none)
+
+  -f FILE     read input from FILE
+  --file      (default stdin)
 ```
 
 # Installation
