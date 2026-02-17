@@ -6,3 +6,4 @@ setup.sh
 tmp*
 *.egg-info
 build
+uv.lock
