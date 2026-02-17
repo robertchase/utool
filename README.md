@@ -96,9 +96,32 @@ You may have to escape (or quote) the square bracket characters, depending on yo
 
 If no columns are specified, all columns will be extracted (1+).
 
+Output as csv:
+
+```
+> cat data | ucol 1 2 3 --to-csv
+2000,AUG,"$3,698.14"
+2000,SEP,$870.96
+2001,AUG,"$1,676.56"
+2001,AUG,$940.80
+2001,SEP,"$2,070.10"
+```
+
+Output as csv with a header line:
+
+```
+> cat data | ucol --to-csv 'year,month,amount' 1 2 3
+year,month,amount
+2000,AUG,"$3,698.14"
+2000,SEP,$870.96
+2001,AUG,"$1,676.56"
+2001,AUG,$940.80
+2001,SEP,"$2,070.10"
+```
+
 ### syntax
 ```
-ucol [-dDnsf] column-numbers
+ucol [-dDnsf] [--csv] [--to-csv] [--to-json] [--to-sc] column-numbers
 ```
 
 ### options
@@ -119,6 +142,12 @@ ucol [-dDnsf] column-numbers
   --to-json           output as json (list of dict) using first row as keys
 
   --pretty-json       output as formatted json (enables --to-json)
+
+  --to-csv            output as csv
+  --to-csv H1,H2,...  output as csv with header line
+                      Note: when used without a header, place after column numbers
+                      (e.g. ucol 1 3 --to-csv) or use -- separator
+                      (e.g. ucol --to-csv -- 1 3)
 
   --to-sc             output as sc (spreadsheet calculator) format (enables --un-comma)
 

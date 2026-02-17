@@ -1,5 +1,9 @@
 """test ucol"""
 
+import io
+import sys
+from unittest import mock
+
 import pytest
 
 from utool import ucol
@@ -175,3 +179,31 @@ def test_empty_columns():
     cols = [ucol.column_specifier("2")]
     ans = list(ucol.split(data, cols, delimiter="|", nullable=True))
     assert ans == [[""], [""]]
+
+
+def test_to_csv(capsys):
+    """Test --to-csv output without header."""
+    sys.argv = ["ucol", "1", "3", "--to-csv"]
+    with mock.patch("sys.stdin", io.StringIO("a b c\nd e f")):
+        ucol.main()
+    assert capsys.readouterr().out == "a,c\nd,f\n"
+
+
+def test_to_csv_with_header(capsys):
+    """Test --to-csv output with header."""
+    sys.argv = ["ucol", "--to-csv", "name,city", "1", "3"]
+    with mock.patch("sys.stdin", io.StringIO("a b c\nd e f")):
+        ucol.main()
+    assert capsys.readouterr().out == "name,city\na,c\nd,f\n"
+
+
+def test_to_csv_quoting(capsys):
+    """Test --to-csv properly quotes values containing commas."""
+    sys.argv = ["ucol", "--to-csv", "1", "2"]
+    with mock.patch("sys.stdin", io.StringIO('hello "world,earth" done')):
+        ucol.main()
+    # input is whitespace-split, so "world,earth" is one column
+    out = capsys.readouterr().out
+    assert "world,earth" in out
+    # csv writer should quote the field
+    assert '"world,earth"' in out

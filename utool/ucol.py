@@ -252,6 +252,13 @@ def main():
         help="output as formatted json (enables --to-json)",
     )
     parser.add_argument(
+        "--to-csv",
+        nargs="?",
+        const="",
+        default=None,
+        help="output as csv, optionally with comma-separated header names",
+    )
+    parser.add_argument(
         "--to-sc",
         action="store_true",
         help="output as sc (spreadsheet calculator) file (enables un-comma)",
@@ -295,6 +302,11 @@ def main():
         args.to_json = True
     json_rows = []
     json_keys = None
+    csv_writer = None
+    if args.to_csv is not None:
+        csv_writer = csv.writer(sys.stdout, lineterminator="\n")
+        if args.to_csv:
+            csv_writer.writerow(args.to_csv.split(","))
     for row_number, response in enumerate(
         split(
             args.file.read(),
@@ -316,6 +328,8 @@ def main():
         elif args.to_sc:
             for sc_line in row_to_sc(response, row_number):
                 print(sc_line)
+        elif csv_writer:
+            csv_writer.writerow(response)
         else:
             print(args.output_delimiter.join(response))
     if args.to_json:
