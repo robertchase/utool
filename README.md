@@ -75,6 +75,25 @@ $940.80 -$282.24
 $2,070.10 -$621.03
 ```
 
+Columns can be grouped into a single output column
+using a dash (-) between two column numbers.
+The grouped columns are joined with the input delimiter (`-d`),
+while the output delimiter (`-D`) separates the output columns as usual:
+
+```
+> cat data | ucol -D, 1-2 3 4
+2000 AUG,$3,698.14,-$1,109.44
+2000 SEP,$870.96,-$261.29
+2001 AUG,$1,676.56,-$502.97
+2001 AUG,$940.80,-$282.24
+2001 SEP,$2,070.10,-$621.03
+```
+
+Here columns 1 and 2 are grouped into one output column
+(joined by the default space input delimiter),
+while the three output columns are separated by commas (`-D,`).
+Negative column numbers use the underscore (`_`) prefix (e.g., `2-_1` for column 2 through the last column).
+
 A substring of a column can be specified
 with a square bracket immediately following a column number.
 For example: `2[5,7]` will select the 5th, 6th, and 7th characters from the second column.
