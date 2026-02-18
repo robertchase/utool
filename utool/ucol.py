@@ -118,6 +118,30 @@ class ColumnSelectorRange(ColumnSelector):
         return columns[self.index :]
 
 
+class ColumnSelectorGroup:
+    """Callable that returns a range of columns joined by a delimiter."""
+
+    def __init__(self, start, end):
+        if start[0] == "_":
+            start = f"-{start[1:]}"
+        if end[0] == "_":
+            end = f"-{end[1:]}"
+        self.start = int(start)
+        if self.start > 0:
+            self.start -= 1
+        end_int = int(end)
+        if end_int > 0:
+            self.end = end_int
+        elif end_int == -1:
+            self.end = None
+        else:
+            self.end = end_int + 1
+        self.delimiter = " "
+
+    def __call__(self, columns: list[str]) -> list[str]:
+        return [self.delimiter.join(columns[self.start : self.end])]
+
+
 class ColumnSelectorSlice(ColumnSelector):
     """Callable that returns a substring of a column at index."""
 
@@ -168,6 +192,10 @@ def split(  # pylint: disable=too-many-positional-arguments,too-many-arguments
     is_csv - if True, parse each line with csv reader
     """
     splitter = linesplitter(is_csv, delimiter, nullable, strip)
+    group_delim = delimiter if delimiter is not None else " "
+    for index in indexes:
+        if isinstance(index, ColumnSelectorGroup):
+            index.delimiter = group_delim
 
     for lineno, line in enumerate(data.splitlines(), start=1):
         cols = splitter(line)
@@ -198,6 +226,9 @@ def column_specifier(column: str):
       the selector will select a column starting from the right
     * if column is a number followed by a "+", the selector will select the
       column and all following columns
+    * if column is two numbers separated by a "-" (e.g., 2-4), the selector will
+      group columns 2 through 4 into a single output column, joined by the input
+      delimiter (-d). negative column numbers use the underscore (_) prefix.
     * if the column is a number followed by [n,m], the selector will select the
       substring from n to m of the numbereth column (n and m start with 1 when counting
       from the left, or -1 when counting from the right)
@@ -210,6 +241,9 @@ def column_specifier(column: str):
         return ColumnSelector(column)
     if match := re.match(r"(\d+)\+$", column):
         return ColumnSelectorRange(match.group(1))
+    if match := re.match(r"(_?\d+)-(_?\d+)$", column):
+        start, end = match.groups()
+        return ColumnSelectorGroup(start, end)
     if match := re.match(r"(_?\d+)\[(-?\d*)(?:,(-?\d+))?\]$", column):
         index, start, end = match.groups()
         return ColumnSelectorSlice(index, start, end)
@@ -284,7 +318,7 @@ def main():
         "columns",
         type=column_specifier,
         nargs="*",
-        help="list of column numbers, e.g. 1 2 -1 5+ 1[1,5] _2[,7] (default=1+)",
+        help="list of column numbers, e.g. 1 2 -1 5+ 2-4 1[1,5] _2[,7] (default=1+)",
     )
     parser.add_argument(
         "-f",

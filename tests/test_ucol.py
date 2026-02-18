@@ -93,6 +93,45 @@ def test_substring(data, cols, result):
     assert ans == result
 
 
+DATA_GROUP = "A B C D E"
+
+
+@pytest.mark.parametrize(
+    "cols, delim, result",
+    (
+        # group columns 1-2, single 3, group 4-5 (default whitespace delimiter)
+        (["1-2", "3", "4-5"], None, [["A B", "C", "D E"]]),
+        # group all columns into one
+        (["1-5"], None, [["A B C D E"]]),
+        # single group at start
+        (["1-3", "4", "5"], None, [["A B C", "D", "E"]]),
+        # single group at end
+        (["1", "2-5"], None, [["A", "B C D E"]]),
+        # group with negative end index
+        (["1", "2-_1"], None, [["A", "B C D E"]]),
+        # group with negative start and end
+        (["1", "_4-_1"], None, [["A", "B C D E"]]),
+        # group middle subset with negative end
+        (["1", "2-_2", "5"], None, [["A", "B C D", "E"]]),
+    ),
+)
+def test_group(cols, delim, result):
+    """Test column grouping with range syntax."""
+    cols = [ucol.column_specifier(col) for col in cols]
+    ans = list(ucol.split(DATA_GROUP, cols, delim))
+    assert ans == result
+
+
+DATA_GROUP_DELIM = "A|B|C|D|E"
+
+
+def test_group_with_delimiter():
+    """Test that grouped columns use the input delimiter."""
+    cols = [ucol.column_specifier(c) for c in ["1-2", "3", "4-5"]]
+    ans = list(ucol.split(DATA_GROUP_DELIM, cols, delimiter="|"))
+    assert ans == [["A|B", "C", "D|E"]]
+
+
 DATA_CSV = '"1"," 2",3\n' + '"4",5,6\n' + '"A","""B",C'
 
 DATA_CSV_1 = [["1"], ["4"], ["A"]]
