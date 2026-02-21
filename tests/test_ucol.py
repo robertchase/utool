@@ -156,6 +156,24 @@ def test_csv(data, cols, result):
     assert ans == result
 
 
+DATA_TSV = '"1"\t" 2"\t3\n' + '"4"\t5\t6\n' + '"A"\t"""B"\tC'
+
+
+@pytest.mark.parametrize(
+    "data, cols, result",
+    (
+        (DATA_TSV, ["1"], DATA_CSV_1),
+        (DATA_TSV, ["2"], DATA_CSV_2),
+        (DATA_TSV, ["3"], DATA_CSV_3),
+    ),
+)
+def test_tsv(data, cols, result):
+    """test tsv option"""
+    cols = [ucol.column_specifier(col) for col in cols]
+    ans = list(lin for lin in ucol.split(data, cols, is_tsv=True))
+    assert ans == result
+
+
 DATA_SPARSE = "1 2\n3\n4 5"
 
 DATA_SPARSE_2 = [["2"], ["5"]]

@@ -43,6 +43,7 @@ def row_to_sc(row: list[str], row_num: int) -> typing.Iterator[str]:
 
 def linesplitter(
     is_csv: bool,
+    is_tsv: bool,
     delimiter: str,
     nullable: bool,
     strip: bool,
@@ -59,6 +60,12 @@ def linesplitter(
         def _split(line):
             """Use csv module."""
             return next(iter(csv.reader([line])))
+
+    elif is_tsv:
+
+        def _split(line):
+            """Use csv module with tab dialect."""
+            return next(iter(csv.reader([line], dialect='excel-tab')))
 
     elif nullable and delimiter is None:
 
@@ -177,6 +184,7 @@ def split(  # pylint: disable=too-many-positional-arguments,too-many-arguments
     strip: bool = True,
     strict: bool = False,
     is_csv: bool = False,
+    is_tsv: bool = False,
 ) -> typing.Iterator[list[str]]:
     """Split text into columns.
 
@@ -190,8 +198,9 @@ def split(  # pylint: disable=too-many-positional-arguments,too-many-arguments
     strip - strip leading and trailing delimiters from line
     strict - if True, stop on rows that have too few columns, else skip
     is_csv - if True, parse each line with csv reader
+    is_tsv - if True, parse each line with tsv reader
     """
-    splitter = linesplitter(is_csv, delimiter, nullable, strip)
+    splitter = linesplitter(is_csv, is_tsv, delimiter, nullable, strip)
     group_delim = delimiter if delimiter is not None else " "
     for index in indexes:
         if isinstance(index, ColumnSelectorGroup):
@@ -226,8 +235,8 @@ def column_specifier(column: str):
       the selector will select a column starting from the right
     * if column is a number followed by a "+", the selector will select the
       column and all following columns
-    * if column is two numbers separated by a "-" (e.g., 2-4), the selector will
-      group columns 2 through 4 into a single output column, joined by the input
+    * if column is two numbers separated by a "-" (e.g., n-m), the selector will
+      group columns n through m into a single output column, joined by the input
       delimiter (-d). negative column numbers use the underscore (_) prefix.
     * if the column is a number followed by [n,m], the selector will select the
       substring from n to m of the numbereth column (n and m start with 1 when counting
@@ -269,6 +278,11 @@ def main():
         "--csv",
         action="store_true",
         help="parse data as csv",
+    )
+    parser.add_argument(
+        "--tsv",
+        action="store_true",
+        help="parse data as tsv",
     )
     parser.add_argument(
         "--un-comma",
@@ -350,6 +364,7 @@ def main():
             not args.no_strip,
             args.strict,
             args.csv,
+            args.tsv,
         )
     ):
         if args.un_comma:
