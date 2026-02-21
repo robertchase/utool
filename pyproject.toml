@@ -6,6 +6,9 @@ build-backend = "setuptools.build_meta"
 name = "utool"
 version = "1.3.0"
 
+[dependency-groups]
+dev = ["pytest"]
+
 [project.scripts]
 usum = "utool.usum:main"
 ucol = "utool.ucol:main"
