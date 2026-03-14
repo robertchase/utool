@@ -146,20 +146,31 @@ def main() -> None:
         help="sort rows by key columns before suppressing",
     )
     parser.add_argument(
-        "-t",
-        "--table",
+        "--tsv",
         action="store_true",
-        help="display output as a formatted table instead of CSV",
+        help="read input as TSV instead of CSV",
+    )
+    parser.add_argument(
+        "-t",
+        "--to-table",
+        action="store_true",
+        help="display output as a formatted table",
+    )
+    parser.add_argument(
+        "--to-tsv",
+        action="store_true",
+        help="write output as TSV instead of CSV",
     )
 
     args = parser.parse_args()
 
     parsed = [parse_spec(s) for s in args.suppress]
 
-    reader = csv.DictReader(args.file)
+    in_dialect = "excel-tab" if args.tsv else "excel"
+    reader = csv.DictReader(args.file, dialect=in_dialect)
     fieldnames = reader.fieldnames
     if not fieldnames:
-        sys.stderr.write("error: CSV has no headers\n")
+        sys.stderr.write("error: input has no headers\n")
         sys.exit(1)
 
     specs = [resolve_spec(s, list(fieldnames)) for s in parsed]
@@ -178,12 +189,13 @@ def main() -> None:
 
     rows = suppress(rows, specs)
 
-    if args.table:
+    if args.to_table:
         sys.stdout.write(format_table(rows, list(fieldnames)))
     else:
+        out_dialect = "excel-tab" if args.to_tsv else "excel"
         out = args.output or sys.stdout
         buf = io.StringIO() if out is sys.stdout else out
-        writer = csv.DictWriter(buf, fieldnames=fieldnames)
+        writer = csv.DictWriter(buf, fieldnames=fieldnames, dialect=out_dialect)
         writer.writeheader()
         writer.writerows(rows)
         if out is sys.stdout:
