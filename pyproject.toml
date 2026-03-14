@@ -14,6 +14,7 @@ usum = "utool.usum:main"
 ucol = "utool.ucol:main"
 upar = "utool.upar:main"
 usup = "utool.usup:main"
+ubrk = "utool.ubrk:main"
 
 [flake8]
 max-line-length = 88

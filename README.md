@@ -561,7 +561,7 @@ Date        daily_total  Project      hours  Activity
 
 ### syntax
 ```
-usup [-tof] suppress-specs
+usup [-stof] [--tsv] [--to-tsv] suppress-specs
 ```
 
 ### options
@@ -572,8 +572,126 @@ usup [-tof] suppress-specs
   -o FILE     write output to FILE
   --output    (default stdout)
 
-  -t          display output as a formatted table instead of CSV
-  --table
+  -s          sort rows by key columns before suppressing
+  --sort
+
+  --tsv       read input as TSV instead of CSV
+
+  -t          display output as a formatted table
+  --to-table
+
+  --to-tsv    write output as TSV instead of CSV
+```
+
+## ubrk
+
+Insert break rows (with optional subtotals) and grand totals into CSV data.
+
+### example
+
+Here is some test data:
+
+```
+> cat timesheet.csv
+Date,Category,hours,total
+2026-03-02,Admin,0.25,4.75
+2026-03-02,Dev,3.75,4.75
+2026-03-02,Dev,0.75,4.75
+2026-03-03,Admin,0.5,5.5
+2026-03-03,Dev,5.0,5.5
+```
+
+Insert break rows when `Date` changes, with subtotals for `hours`:
+
+```
+> cat timesheet.csv | ubrk "Date:hours"
+Date,Category,hours,total
+2026-03-02,Admin,0.25,4.75
+2026-03-02,Dev,3.75,4.75
+2026-03-02,Dev,0.75,4.75
+,,4.75,
+2026-03-03,Admin,0.5,5.5
+2026-03-03,Dev,5.0,5.5
+,,5.5,
+```
+
+Break rows without subtotals (visual separator only):
+
+```
+> cat timesheet.csv | ubrk "Date"
+Date,Category,hours,total
+2026-03-02,Admin,0.25,4.75
+2026-03-02,Dev,3.75,4.75
+2026-03-02,Dev,0.75,4.75
+,,,
+2026-03-03,Admin,0.5,5.5
+2026-03-03,Dev,5.0,5.5
+,,,
+```
+
+Add a grand total row with `--total`:
+
+```
+> cat timesheet.csv | ubrk "Date:hours" --total hours,total -t
+Date        Category  hours  total
+----------  --------  -----  -----
+2026-03-02  Admin     0.25   4.75
+2026-03-02  Dev       3.75   4.75
+2026-03-02  Dev       0.75   4.75
+                      4.75
+2026-03-03  Admin     0.5    5.5
+2026-03-03  Dev       5.0    5.5
+                      5.5
+                      10.25  25.25
+```
+
+Use `--total` alone (no break spec) for just a grand total:
+
+```
+> cat timesheet.csv | ubrk --total hours
+Date,Category,hours,total
+2026-03-02,Admin,0.25,4.75
+2026-03-02,Dev,3.75,4.75
+2026-03-02,Dev,0.75,4.75
+2026-03-03,Admin,0.5,5.5
+2026-03-03,Dev,5.0,5.5
+,,10.25,
+```
+
+Compose with `usup` for a full report:
+
+```
+> cat timesheet.csv | ubrk -s "Date:hours" --total hours,total | usup "total:Date" -t
+```
+
+### syntax
+```
+ubrk [-stof] [--tsv] [--to-tsv] [--total COLS] [break-spec]
+```
+
+### options
+```
+  break-spec  break_col[,break_col...][:subtotal_col[,subtotal_col...]]
+              columns can be names or 1-indexed numbers
+
+  -f FILE     read input from FILE
+  --file      (default stdin)
+
+  -o FILE     write output to FILE
+  --output    (default stdout)
+
+  -s          sort rows by break columns before processing
+  --sort
+
+  --total COLS
+              comma-separated columns to include in a grand total row
+
+  --tsv       read input as TSV instead of CSV
+
+  -t          display output as a formatted table
+  --to-table
+
+  --to-tsv    write output as TSV instead of CSV
 ```
 
 # Installation
