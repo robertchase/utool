@@ -21,6 +21,39 @@ def parse_spec(spec: str) -> tuple[str, list[str]]:
     return col.strip(), keys
 
 
+def resolve_spec(
+    spec: tuple[str, list[str]], fieldnames: list[str]
+) -> tuple[str, list[str]]:
+    """Resolve numeric column references (1-indexed) to header names.
+
+    spec -- (column, [keys]) tuple from parse_spec
+    fieldnames -- list of CSV column names
+    returns (resolved_column, [resolved_keys])
+    """
+    col, keys = spec
+    return _resolve_name(col, fieldnames), [
+        _resolve_name(k, fieldnames) for k in keys
+    ]
+
+
+def _resolve_name(name: str, fieldnames: list[str]) -> str:
+    """Resolve a single column reference to a header name.
+
+    name -- column name or 1-indexed integer
+    fieldnames -- list of CSV column names
+    returns resolved column name
+    """
+    try:
+        index = int(name)
+    except ValueError:
+        return name
+    if index < 1 or index > len(fieldnames):
+        raise ValueError(
+            f"column index {index} out of range (1-{len(fieldnames)})"
+        )
+    return fieldnames[index - 1]
+
+
 def suppress(rows: list[dict], specs: list[tuple[str, list[str]]]) -> list[dict]:
     """Suppress repeated column values within groups in sorted data.
 
@@ -73,7 +106,8 @@ def main() -> None:
     parser.add_argument(
         "suppress",
         nargs="+",
-        help="suppress spec: 'column:key1,key2' — blanks column on duplicate group rows",
+        help="suppress spec: 'column:key1,key2' — blanks column on duplicate group rows. "
+        "columns can be names or 1-indexed numbers (e.g. '5:1,2')",
     )
     parser.add_argument(
         "-f",
@@ -98,13 +132,15 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    specs = [parse_spec(s) for s in args.suppress]
+    parsed = [parse_spec(s) for s in args.suppress]
 
     reader = csv.DictReader(args.file)
     fieldnames = reader.fieldnames
     if not fieldnames:
         sys.stderr.write("error: CSV has no headers\n")
         sys.exit(1)
+
+    specs = [resolve_spec(s, list(fieldnames)) for s in parsed]
 
     for col, keys in specs:
         for name in [col, *keys]:

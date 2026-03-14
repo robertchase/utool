@@ -97,3 +97,36 @@ def test_format_table():
 def test_suppress_empty():
     """test suppress with no rows"""
     assert usup.suppress([], [("col", ["key"])]) == []
+
+
+# --- resolve_spec / column index tests ---
+
+FIELDNAMES = ["Activity", "Date", "Category", "hours", "total"]
+
+
+@pytest.mark.parametrize(
+    "spec, expected",
+    (
+        (("total", ["Date"]), ("total", ["Date"])),
+        (("5", ["2"]), ("total", ["Date"])),
+        (("4", ["2", "3"]), ("hours", ["Date", "Category"])),
+        (("Category", ["2"]), ("Category", ["Date"])),
+        (("3", ["Date", "Category"]), ("Category", ["Date", "Category"])),
+    ),
+)
+def test_resolve_spec(spec, expected):
+    """test resolving numeric column indices to names"""
+    assert usup.resolve_spec(spec, FIELDNAMES) == expected
+
+
+@pytest.mark.parametrize("index", ("0", "6", "-1"))
+def test_resolve_spec_out_of_range(index):
+    """test that out-of-range indices raise ValueError"""
+    with pytest.raises(ValueError, match="out of range"):
+        usup.resolve_spec((index, ["1"]), FIELDNAMES)
+
+
+def test_resolve_spec_key_out_of_range():
+    """test that out-of-range key index raises ValueError"""
+    with pytest.raises(ValueError, match="out of range"):
+        usup.resolve_spec(("1", ["99"]), FIELDNAMES)
