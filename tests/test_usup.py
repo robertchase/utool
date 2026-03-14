@@ -130,3 +130,66 @@ def test_resolve_spec_key_out_of_range():
     """test that out-of-range key index raises ValueError"""
     with pytest.raises(ValueError, match="out of range"):
         usup.resolve_spec(("1", ["99"]), FIELDNAMES)
+
+
+# --- sort_keys tests ---
+
+
+def test_sort_keys_single_spec():
+    """test sort_keys with a single spec"""
+    specs = [("total", ["Date"])]
+    assert usup.sort_keys(specs) == ["Date"]
+
+
+def test_sort_keys_multiple_specs_deduplicates():
+    """test sort_keys deduplicates and preserves first-seen order"""
+    specs = [
+        ("total", ["Date"]),
+        ("hours", ["Date", "Category"]),
+        ("Category", ["Date", "Category"]),
+    ]
+    assert usup.sort_keys(specs) == ["Date", "Category"]
+
+
+def test_sort_keys_ordering():
+    """test sort_keys preserves order across specs with different keys"""
+    specs = [
+        ("a", ["X", "Y"]),
+        ("b", ["Z", "X"]),
+    ]
+    assert usup.sort_keys(specs) == ["X", "Y", "Z"]
+
+
+# --- sort + suppress integration tests ---
+
+
+DATA_UNSORTED = [
+    {"Date": "2026-03-03", "Category": "Dev", "hours": "5.0", "total": "5.5"},
+    {"Date": "2026-03-02", "Category": "Admin", "hours": "0.25", "total": "4.75"},
+    {"Date": "2026-03-02", "Category": "Dev", "hours": "3.75", "total": "4.75"},
+    {"Date": "2026-03-03", "Category": "Admin", "hours": "0.5", "total": "5.5"},
+    {"Date": "2026-03-02", "Category": "Dev", "hours": "3.75", "total": "4.75"},
+]
+
+
+def test_sort_then_suppress():
+    """test that sorting by key columns produces correct suppression"""
+    rows = _copy(DATA_UNSORTED)
+    specs = [("total", ["Date"])]
+    keys = usup.sort_keys(specs)
+    rows.sort(key=lambda r: tuple(r[k] for k in keys))
+    result = usup.suppress(rows, specs)
+    assert [r["total"] for r in result] == ["4.75", "", "", "5.5", ""]
+    assert [r["Date"] for r in result] == [
+        "2026-03-02", "2026-03-02", "2026-03-02", "2026-03-03", "2026-03-03",
+    ]
+
+
+def test_sort_then_suppress_compound_keys():
+    """test sort + suppress with compound keys"""
+    rows = _copy(DATA_UNSORTED)
+    specs = [("hours", ["Date", "Category"])]
+    keys = usup.sort_keys(specs)
+    rows.sort(key=lambda r: tuple(r[k] for k in keys))
+    result = usup.suppress(rows, specs)
+    assert [r["hours"] for r in result] == ["0.25", "3.75", "", "0.5", "5.0"]

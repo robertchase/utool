@@ -54,6 +54,22 @@ def _resolve_name(name: str, fieldnames: list[str]) -> str:
     return fieldnames[index - 1]
 
 
+def sort_keys(specs: list[tuple[str, list[str]]]) -> list[str]:
+    """Collect unique key columns from specs in first-seen order.
+
+    specs -- list of (column, [key_columns]) tuples
+    returns ordered list of unique key column names
+    """
+    seen: set[str] = set()
+    keys: list[str] = []
+    for _, spec_keys in specs:
+        for k in spec_keys:
+            if k not in seen:
+                seen.add(k)
+                keys.append(k)
+    return keys
+
+
 def suppress(rows: list[dict], specs: list[tuple[str, list[str]]]) -> list[dict]:
     """Suppress repeated column values within groups in sorted data.
 
@@ -124,6 +140,12 @@ def main() -> None:
         help="output file (default=stdout)",
     )
     parser.add_argument(
+        "-s",
+        "--sort",
+        action="store_true",
+        help="sort rows by key columns before suppressing",
+    )
+    parser.add_argument(
         "-t",
         "--table",
         action="store_true",
@@ -148,7 +170,13 @@ def main() -> None:
                 sys.stderr.write(f"error: column '{name}' not found in CSV\n")
                 sys.exit(1)
 
-    rows = suppress(list(reader), specs)
+    rows = list(reader)
+
+    if args.sort:
+        keys = sort_keys(specs)
+        rows.sort(key=lambda r: tuple(r[k] for k in keys))
+
+    rows = suppress(rows, specs)
 
     if args.table:
         sys.stdout.write(format_table(rows, list(fieldnames)))
