@@ -504,6 +504,78 @@ upar [-liHpf]
   --file      (default stdin)
 ```
 
+## usup
+
+Suppress repeated values in CSV columns.
+
+### example
+
+Here is some test data:
+
+```
+> cat timesheet.csv
+Date,daily_total,Project,hours,Activity
+2026-03-02,4.75,Admin,0.25,check email
+2026-03-02,4.75,Meetings,0.75,team standup
+2026-03-02,4.75,Development,3.75,write tests
+2026-03-02,4.75,Development,3.75,code review
+2026-03-03,5.5,Meetings,0.5,daily standup
+2026-03-03,5.5,Development,5.0,feature work
+2026-03-03,5.5,Development,5.0,bug triage
+```
+
+Suppress repeated values&mdash;show `daily_total` once per date,
+`hours` and `Project` once per date/project group:
+
+```
+> cat timesheet.csv | usup "daily_total:Date" "hours:Date,Project" "Project:Date,Project"
+Date,daily_total,Project,hours,Activity
+2026-03-02,4.75,Admin,0.25,check email
+2026-03-02,,Meetings,0.75,team standup
+2026-03-02,,Development,3.75,write tests
+2026-03-02,,,, code review
+2026-03-03,5.5,Meetings,0.5,daily standup
+2026-03-03,,Development,5.0,feature work
+2026-03-03,,,,bug triage
+```
+
+Each suppress spec has the format `column:key1,key2`.
+Within each group defined by the key columns,
+the column value is shown only on the first row and blanked on the rest.
+The input must already be sorted by the group keys.
+
+Display as a formatted table with `-t`:
+
+```
+> cat timesheet.csv | usup "daily_total:Date" "hours:Date,Project" "Project:Date,Project" -t
+Date        daily_total  Project      hours  Activity
+----------  -----------  -----------  -----  -------------
+2026-03-02  4.75         Admin        0.25   check email
+2026-03-02               Meetings     0.75   team standup
+2026-03-02               Development  3.75   write tests
+2026-03-02                                   code review
+2026-03-03  5.5          Meetings     0.5    daily standup
+2026-03-03               Development  5.0    feature work
+2026-03-03                                   bug triage
+```
+
+### syntax
+```
+usup [-tof] suppress-specs
+```
+
+### options
+```
+  -f FILE     read input from FILE
+  --file      (default stdin)
+
+  -o FILE     write output to FILE
+  --output    (default stdout)
+
+  -t          display output as a formatted table instead of CSV
+  --table
+```
+
 # Installation
 
 1. clone the repo
