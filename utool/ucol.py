@@ -176,6 +176,105 @@ class ColumnSelectorSlice(ColumnSelector):
         return [column[self.start : self.end]]
 
 
+def _parse_json_dicts(data: str) -> list[dict]:
+    """Parse JSON data as either a list of dicts or a sequence of dicts.
+
+    A list of dicts is a JSON array: [{...}, {...}].
+    A sequence of dicts is one or more dicts separated by newlines,
+    possibly pretty-printed.
+    """
+    data = data.strip()
+    if data.startswith("["):
+        try:
+            result = json.loads(data)
+            if isinstance(result, list):
+                return result
+        except json.JSONDecodeError:
+            pass
+    # Parse as sequence of dicts by tracking brace depth
+    dicts = []
+    depth = 0
+    in_string = False
+    escape = False
+    start = None
+    for i, ch in enumerate(data):
+        if escape:
+            escape = False
+            continue
+        if ch == "\\" and in_string:
+            escape = True
+            continue
+        if ch == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if ch == "{":
+            if depth == 0:
+                start = i
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0 and start is not None:
+                dicts.append(json.loads(data[start : i + 1]))
+                start = None
+    return dicts
+
+
+def split_json(
+    data: str,
+    indexes: list[ColumnSelector],
+    strict: bool = False,
+) -> typing.Iterator[list[str]]:
+    """Split JSON data into columns.
+
+    data - JSON string (list of dicts or sequence of dicts)
+    indexes - list of ColumnSelectors
+    strict - if True, all dicts must have the same keys
+    """
+    dicts = _parse_json_dicts(data)
+    if not dicts:
+        return
+    # Validate and collect keys
+    keys = []
+    seen_keys = set()
+    for i, d in enumerate(dicts):
+        if not isinstance(d, dict):
+            raise UcolException(f"JSON element {i} is not a dict")
+        if strict and i > 0 and list(d.keys()) != list(dicts[0].keys()):
+            raise UcolException(
+                f"JSON dict {i + 1} keys {list(d.keys())} != {list(dicts[0].keys())}"
+            )
+        for k in d.keys():
+            if k not in seen_keys:
+                keys.append(k)
+                seen_keys.add(k)
+    # Yield header row
+    header = []
+    for index in indexes:
+        try:
+            header.extend(index(keys))
+        except IndexError:
+            pass
+    yield header
+    # Yield data rows
+    for i, d in enumerate(dicts):
+        cols = [str(d.get(k, "")) for k in keys]
+        result = []
+        for index in indexes:
+            try:
+                result.extend(index(cols))
+            except IndexError:
+                if not strict:
+                    result = None
+                    break
+                raise UcolException(
+                    f"JSON dict {i + 1} does not have enough columns"
+                ) from None
+        if result is not None:
+            yield result
+
+
 def split(  # pylint: disable=too-many-positional-arguments,too-many-arguments
     data: typing.TextIO,
     indexes: list[ColumnSelector],
@@ -285,6 +384,11 @@ def main():
         help="parse data as tsv",
     )
     parser.add_argument(
+        "--json",
+        action="store_true",
+        help="parse input as JSON (list of dicts or sequence of dicts)",
+    )
+    parser.add_argument(
         "--un-comma",
         action="store_true",
         help="remove commas and/or leading dollar sign ($) from numbers",
@@ -355,8 +459,10 @@ def main():
         csv_writer = csv.writer(sys.stdout, lineterminator="\n")
         if args.to_csv:
             csv_writer.writerow(args.to_csv.split(","))
-    for row_number, response in enumerate(
-        split(
+    if args.json:
+        rows = split_json(args.file.read(), args.columns, args.strict)
+    else:
+        rows = split(
             args.file.read(),
             args.columns,
             args.delimiter,
@@ -366,7 +472,7 @@ def main():
             args.csv,
             args.tsv,
         )
-    ):
+    for row_number, response in enumerate(rows):
         if args.un_comma:
             response = [remove_comma(item) for item in response]
         if args.to_json:

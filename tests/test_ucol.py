@@ -264,3 +264,110 @@ def test_to_csv_quoting(capsys):
     assert "world,earth" in out
     # csv writer should quote the field
     assert '"world,earth"' in out
+
+
+# --- JSON input tests ---
+
+JSON_LIST = '[{"name": "Alice", "age": "30"}, {"name": "Bob", "age": "25"}]'
+
+JSON_SEQUENCE = '{"name": "Alice", "age": "30"}\n{"name": "Bob", "age": "25"}'
+
+JSON_PRETTY = """{
+  "name": "Alice",
+  "age": "30"
+}
+{
+  "name": "Bob",
+  "age": "25"
+}"""
+
+
+@pytest.mark.parametrize(
+    "data, cols, result",
+    (
+        (JSON_LIST, ["1+"], [["name", "age"], ["Alice", "30"], ["Bob", "25"]]),
+        (JSON_SEQUENCE, ["1+"], [["name", "age"], ["Alice", "30"], ["Bob", "25"]]),
+        (JSON_PRETTY, ["1+"], [["name", "age"], ["Alice", "30"], ["Bob", "25"]]),
+        (JSON_LIST, ["1"], [["name"], ["Alice"], ["Bob"]]),
+        (JSON_LIST, ["2"], [["age"], ["30"], ["25"]]),
+        (JSON_LIST, ["2", "1"], [["age", "name"], ["30", "Alice"], ["25", "Bob"]]),
+    ),
+)
+def test_json_input(data, cols, result):
+    """Test --json input parsing."""
+    cols = [ucol.column_specifier(col) for col in cols]
+    ans = list(ucol.split_json(data, cols))
+    assert ans == result
+
+
+def test_json_strict_same_keys():
+    """Test --json --strict passes when all dicts have the same keys."""
+    data = '[{"a": "1", "b": "2"}, {"a": "3", "b": "4"}]'
+    cols = [ucol.column_specifier("1+")]
+    ans = list(ucol.split_json(data, cols, strict=True))
+    assert ans == [["a", "b"], ["1", "2"], ["3", "4"]]
+
+
+def test_json_strict_different_keys():
+    """Test --json --strict fails when dicts have different keys."""
+    data = '[{"a": "1", "b": "2"}, {"a": "3", "c": "4"}]'
+    cols = [ucol.column_specifier("1+")]
+    with pytest.raises(ucol.UcolException):
+        list(ucol.split_json(data, cols, strict=True))
+
+
+def test_json_missing_key_no_strict():
+    """Test --json without strict: missing keys become empty strings."""
+    data = '[{"a": "1", "b": "2"}, {"a": "3"}]'
+    cols = [ucol.column_specifier("1+")]
+    ans = list(ucol.split_json(data, cols))
+    assert ans == [["a", "b"], ["1", "2"], ["3", ""]]
+
+
+def test_json_union_keys():
+    """Test --json without strict: keys are union in first-seen order."""
+    data = '[{"a": "1", "b": "2"}, {"a": "3", "c": "4"}]'
+    cols = [ucol.column_specifier("1+")]
+    ans = list(ucol.split_json(data, cols))
+    assert ans == [["a", "b", "c"], ["1", "2", ""], ["3", "", "4"]]
+
+
+def test_json_non_string_values():
+    """Test --json converts non-string values to strings."""
+    data = '[{"x": 42, "y": true, "z": null}]'
+    cols = [ucol.column_specifier("1+")]
+    ans = list(ucol.split_json(data, cols))
+    assert ans == [["x", "y", "z"], ["42", "True", "None"]]
+
+
+def test_json_main(capsys):
+    """Test --json via main()."""
+    sys.argv = ["ucol", "--json", "1"]
+    with mock.patch(
+        "sys.stdin",
+        io.StringIO('[{"name": "Alice", "age": "30"}, {"name": "Bob", "age": "25"}]'),
+    ):
+        ucol.main()
+    assert capsys.readouterr().out == "name\nAlice\nBob\n"
+
+
+def test_json_sequence_main(capsys):
+    """Test --json with sequence of dicts via main()."""
+    sys.argv = ["ucol", "--json", "2"]
+    with mock.patch(
+        "sys.stdin",
+        io.StringIO('{"name": "Alice", "age": "30"}\n{"name": "Bob", "age": "25"}'),
+    ):
+        ucol.main()
+    assert capsys.readouterr().out == "age\n30\n25\n"
+
+
+def test_json_to_csv(capsys):
+    """Test --json combined with --to-csv."""
+    sys.argv = ["ucol", "--json", "--to-csv", "--", "2", "1"]
+    with mock.patch(
+        "sys.stdin",
+        io.StringIO('[{"name": "Alice", "age": "30"}, {"name": "Bob", "age": "25"}]'),
+    ):
+        ucol.main()
+    assert capsys.readouterr().out == "age,name\n30,Alice\n25,Bob\n"
