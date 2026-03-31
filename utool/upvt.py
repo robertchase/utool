@@ -1,0 +1,291 @@
+"""Create pivot tables from CSV data."""
+
+import argparse
+import csv
+import io
+import sys
+from collections import OrderedDict
+from decimal import Decimal, InvalidOperation
+
+
+def parse_sort_suffix(arg: str) -> tuple[str, str | None]:
+    """Parse an argument, stripping optional +/- sort suffix.
+
+    arg -- string optionally suffixed with + or -
+    returns (base, sort_direction) where sort_direction is
+            'asc', 'desc', or None
+    """
+    if arg.endswith("+"):
+        return arg[:-1], "asc"
+    if arg.endswith("-"):
+        return arg[:-1], "desc"
+    return arg, None
+
+
+def resolve_name(name: str, fieldnames: list[str]) -> str:
+    """Resolve a single column reference to a header name.
+
+    name -- column name or 1-indexed integer
+    fieldnames -- list of CSV column names
+    returns resolved column name
+    """
+    try:
+        index = int(name)
+    except ValueError:
+        return name
+    if index < 1 or index > len(fieldnames):
+        raise ValueError(
+            f"column index {index} out of range (1-{len(fieldnames)})"
+        )
+    return fieldnames[index - 1]
+
+
+def _sum_values(values: list[str]) -> str:
+    """Sum a list of string values using Decimal, returning a string.
+
+    values -- list of string representations of numbers
+    returns string representation of the sum
+    """
+    total = Decimal(0)
+    max_places = 0
+    for val in values:
+        val = val.strip()
+        if not val:
+            continue
+        try:
+            d = Decimal(val)
+        except InvalidOperation:
+            continue
+        total += d
+        _, _, exponent = d.as_tuple()
+        if isinstance(exponent, int) and exponent < 0:
+            max_places = max(max_places, -exponent)
+
+    if max_places > 0:
+        fmt = f".{max_places}f"
+        return format(total, fmt)
+    return str(total)
+
+
+TOTAL_HEADER = "Total"
+
+
+def pivot(
+    rows: list[dict],
+    row_col: str,
+    col_col: str,
+    val_col: str,
+    row_sort: str | None = None,
+    col_sort: str | None = None,
+    total: bool = False,
+    total_sort: str | None = None,
+) -> tuple[list[str], list[dict]]:
+    """Build a pivot table from rows.
+
+    rows -- list of dicts (as from csv.DictReader)
+    row_col -- column whose values become row labels
+    col_col -- column whose unique values become pivot column headers
+    val_col -- column whose values fill cells (summed per group)
+    row_sort -- 'asc', 'desc', or None to preserve encounter order
+    col_sort -- 'asc', 'desc', or None to preserve encounter order
+    total -- include a Total column summing each row
+    total_sort -- 'asc', 'desc', or None; if set, sort rows by total
+                  (overrides row_sort)
+    returns (fieldnames, pivot_rows) where fieldnames starts with row_col
+    """
+    # Collect unique row and column values in encounter order
+    row_keys: OrderedDict[str, None] = OrderedDict()
+    col_keys: OrderedDict[str, None] = OrderedDict()
+    cells: dict[tuple[str, str], list[str]] = {}
+
+    for row in rows:
+        r = row[row_col]
+        c = row[col_col]
+        v = row[val_col]
+        row_keys[r] = None
+        col_keys[c] = None
+        cells.setdefault((r, c), []).append(v)
+
+    row_labels = list(row_keys)
+    col_labels = list(col_keys)
+
+    if col_sort is not None:
+        col_labels.sort(reverse=(col_sort == "desc"))
+
+    fieldnames = [row_col] + col_labels
+
+    pivot_rows: list[dict] = []
+    for r in row_labels:
+        pivot_row: dict[str, str] = {row_col: r}
+        cell_values: list[str] = []
+        for c in col_labels:
+            vals = cells.get((r, c), [])
+            summed = _sum_values(vals) if vals else ""
+            pivot_row[c] = summed
+            if summed:
+                cell_values.append(summed)
+        if total:
+            pivot_row[TOTAL_HEADER] = _sum_values(cell_values)
+        pivot_rows.append(pivot_row)
+
+    if total:
+        fieldnames.append(TOTAL_HEADER)
+
+    # Sort rows: total_sort overrides row_sort
+    if total_sort is not None and total:
+        pivot_rows.sort(
+            key=lambda r: Decimal(r[TOTAL_HEADER] or "0"),
+            reverse=(total_sort == "desc"),
+        )
+    elif row_sort is not None:
+        row_labels.sort(reverse=(row_sort == "desc"))
+        label_order = {label: i for i, label in enumerate(row_labels)}
+        pivot_rows.sort(key=lambda r: label_order[r[row_col]])
+
+    return fieldnames, pivot_rows
+
+
+def format_table(rows: list[dict], fieldnames: list[str]) -> str:
+    """Format rows as a simple aligned table.
+
+    rows -- list of dicts
+    fieldnames -- column names in order
+    returns formatted table string
+    """
+    widths = [len(f) for f in fieldnames]
+    for row in rows:
+        for i, f in enumerate(fieldnames):
+            widths[i] = max(widths[i], len(str(row.get(f, ""))))
+
+    header = "  ".join(f.ljust(widths[i]) for i, f in enumerate(fieldnames))
+    separator = "  ".join("-" * widths[i] for i in range(len(fieldnames)))
+    lines = [header, separator]
+    for row in rows:
+        line = "  ".join(
+            str(row.get(f, "")).ljust(widths[i]) for i, f in enumerate(fieldnames)
+        )
+        lines.append(line)
+
+    return "\n".join(lines) + "\n"
+
+
+def main() -> None:
+    """Main handler."""
+    parser = argparse.ArgumentParser(
+        description="create pivot tables from CSV data"
+    )
+    parser.add_argument(
+        "row_col",
+        help="column for row labels (name or 1-indexed number); "
+        "suffix with + or - to sort ascending or descending",
+    )
+    parser.add_argument(
+        "col_col",
+        help="column for pivot column headers (name or 1-indexed number); "
+        "suffix with + or - to sort ascending or descending",
+    )
+    parser.add_argument(
+        "val_col",
+        help="column whose values fill cells (summed per group)",
+    )
+    parser.add_argument(
+        "-f",
+        "--file",
+        type=argparse.FileType("r"),
+        default=sys.stdin,
+        help="input file (default=stdin)",
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        type=argparse.FileType("w"),
+        default=None,
+        help="output file (default=stdout)",
+    )
+    parser.add_argument(
+        "--total",
+        nargs="?",
+        const="",
+        default=None,
+        help="add a Total column summing each row; "
+        "use --total+ or --total- to sort rows by total asc/desc",
+    )
+    parser.add_argument(
+        "--tsv",
+        action="store_true",
+        help="read input as TSV instead of CSV",
+    )
+    parser.add_argument(
+        "-t",
+        "--to-table",
+        action="store_true",
+        help="display output as a formatted table",
+    )
+    parser.add_argument(
+        "--to-tsv",
+        action="store_true",
+        help="write output as TSV instead of CSV",
+    )
+
+    # Preprocess argv so --total+ and --total- are recognised by argparse
+    argv = sys.argv[1:]
+    for i, arg in enumerate(argv):
+        if arg in ("--total+", "--total-"):
+            argv[i:i + 1] = ["--total", arg[-1]]
+            break
+
+    args = parser.parse_args(argv)
+
+    in_dialect = "excel-tab" if args.tsv else "excel"
+    reader = csv.DictReader(args.file, dialect=in_dialect)
+    fieldnames = reader.fieldnames
+    if not fieldnames:
+        sys.stderr.write("error: input has no headers\n")
+        sys.exit(1)
+
+    fnames = list(fieldnames)
+
+    row_raw, row_sort = parse_sort_suffix(args.row_col)
+    col_raw, col_sort = parse_sort_suffix(args.col_col)
+
+    row_col = resolve_name(row_raw, fnames)
+    col_col = resolve_name(col_raw, fnames)
+    val_col = resolve_name(args.val_col, fnames)
+
+    for name in (row_col, col_col, val_col):
+        if name not in fieldnames:
+            sys.stderr.write(f"error: column '{name}' not found in input\n")
+            sys.exit(1)
+
+    rows = list(reader)
+
+    # Parse --total with optional +/- suffix
+    use_total = args.total is not None
+    total_sort: str | None = None
+    if use_total and args.total == "+":
+        total_sort = "asc"
+    elif use_total and args.total == "-":
+        total_sort = "desc"
+
+    pivot_fnames, pivot_rows = pivot(
+        rows, row_col, col_col, val_col, row_sort, col_sort,
+        total=use_total, total_sort=total_sort,
+    )
+
+    if args.to_table:
+        sys.stdout.write(format_table(pivot_rows, pivot_fnames))
+    else:
+        out_dialect = "excel-tab" if args.to_tsv else "excel"
+        out = args.output or sys.stdout
+        buf = io.StringIO() if out is sys.stdout else out
+        writer = csv.DictWriter(buf, fieldnames=pivot_fnames, dialect=out_dialect)
+        writer.writeheader()
+        writer.writerows(pivot_rows)
+        if out is sys.stdout:
+            sys.stdout.write(buf.getvalue())
+        if args.output:
+            args.output.close()
+
+
+if __name__ == "__main__":
+    main()
