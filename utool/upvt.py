@@ -103,6 +103,7 @@ def pivot(
     total_sort: str | None = None,
     avg: bool = False,
     avg_sort: str | None = None,
+    summary_only: bool = False,
 ) -> tuple[list[str], list[dict]]:
     """Build a pivot table from rows.
 
@@ -118,6 +119,7 @@ def pivot(
     avg -- include an Avg column with the row mean (missing cells = 0)
     avg_sort -- 'asc', 'desc', or None; if set, sort rows by avg
                 (overrides total_sort and row_sort)
+    summary_only -- omit pivot columns; output only row label + Total/Avg
     returns (fieldnames, pivot_rows) where fieldnames starts with row_col
     """
     # Collect unique row and column values in encounter order
@@ -161,6 +163,11 @@ def pivot(
         fieldnames.append(TOTAL_HEADER)
     if avg:
         fieldnames.append(AVG_HEADER)
+
+    if summary_only:
+        summary_cols = [c for c in (TOTAL_HEADER, AVG_HEADER) if c in fieldnames]
+        fieldnames = [row_col] + summary_cols
+        pivot_rows = [{k: r[k] for k in fieldnames} for r in pivot_rows]
 
     # Sort rows: avg_sort > total_sort > row_sort
     if avg_sort is not None and avg:
@@ -255,6 +262,11 @@ def main() -> None:
         "use --avg+ or --avg- to sort rows by avg asc/desc",
     )
     parser.add_argument(
+        "--summary-only",
+        action="store_true",
+        help="omit pivot columns; output only row label plus --total/--avg columns",
+    )
+    parser.add_argument(
         "--tsv",
         action="store_true",
         help="read input as TSV instead of CSV",
@@ -324,6 +336,7 @@ def main() -> None:
         rows, row_col, col_col, val_col, row_sort, col_sort,
         total=use_total, total_sort=total_sort,
         avg=use_avg, avg_sort=avg_sort,
+        summary_only=args.summary_only,
     )
 
     if args.to_table:

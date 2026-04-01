@@ -356,6 +356,51 @@ def test_avg_values_zero_count():
     assert upvt._avg_values([], 0) == "0.00"
 
 
+# --- summary_only tests ---
+
+
+def test_pivot_summary_only_total():
+    """Test summary_only with --total omits pivot columns."""
+    rows = _copy(DATA)
+    fnames, result = upvt.pivot(
+        rows, "Region", "Product", "Revenue", total=True, summary_only=True
+    )
+    assert fnames == ["Region", "Total"]
+    assert "Widget" not in fnames
+    assert result[0] == {"Region": "East", "Total": "350"}
+    assert result[1] == {"Region": "West", "Total": "450"}
+
+
+def test_pivot_summary_only_avg():
+    """Test summary_only with --avg omits pivot columns."""
+    rows = _copy(DATA)
+    fnames, result = upvt.pivot(
+        rows, "Region", "Product", "Revenue", avg=True, summary_only=True
+    )
+    assert fnames == ["Region", "Avg"]
+    assert result[0]["Avg"] == "175.00"
+
+
+def test_pivot_summary_only_total_and_avg():
+    """Test summary_only with both --total and --avg."""
+    rows = _copy(DATA)
+    fnames, result = upvt.pivot(
+        rows, "Region", "Product", "Revenue", total=True, avg=True, summary_only=True
+    )
+    assert fnames == ["Region", "Total", "Avg"]
+
+
+def test_pivot_summary_only_sorting_still_works():
+    """Test that sorting still applies with summary_only."""
+    rows = _copy(DATA)
+    fnames, result = upvt.pivot(
+        rows, "Region", "Product", "Revenue",
+        total=True, total_sort="desc", summary_only=True,
+    )
+    assert result[0]["Region"] == "West"
+    assert result[1]["Region"] == "East"
+
+
 # --- format_table tests ---
 
 
