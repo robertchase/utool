@@ -271,6 +271,91 @@ def test_pivot_total_missing_cells():
     assert result[1]["Total"] == "20"
 
 
+# --- avg column tests ---
+
+
+def test_pivot_avg():
+    """Test pivot with avg column."""
+    rows = _copy(DATA)
+    fnames, result = upvt.pivot(rows, "Region", "Product", "Revenue", avg=True)
+    assert fnames == ["Region", "Widget", "Gadget", "Avg"]
+    # East: (150 + 200) / 2 = 175.00
+    assert result[0]["Avg"] == "175.00"
+    # West: (150 + 300) / 2 = 225.00
+    assert result[1]["Avg"] == "225.00"
+
+
+def test_pivot_avg_missing_cells():
+    """Test avg denominator includes missing cells (treated as 0)."""
+    rows = [
+        {"R": "a", "C": "x", "V": "10"},
+        {"R": "b", "C": "y", "V": "20"},
+    ]
+    fnames, result = upvt.pivot(rows, "R", "C", "V", avg=True)
+    # 2 columns total; row "a": 10/2=5.00, row "b": 20/2=10.00
+    assert result[0]["Avg"] == "5.00"
+    assert result[1]["Avg"] == "10.00"
+
+
+def test_pivot_avg_sort_desc():
+    """Test avg_sort=desc sorts rows by avg descending."""
+    rows = _copy(DATA)
+    fnames, result = upvt.pivot(
+        rows, "Region", "Product", "Revenue", avg=True, avg_sort="desc"
+    )
+    # West (225.00) before East (175.00)
+    assert result[0]["Region"] == "West"
+    assert result[1]["Region"] == "East"
+
+
+def test_pivot_avg_sort_asc():
+    """Test avg_sort=asc sorts rows by avg ascending."""
+    rows = _copy(DATA)
+    fnames, result = upvt.pivot(
+        rows, "Region", "Product", "Revenue", avg=True, avg_sort="asc"
+    )
+    assert result[0]["Region"] == "East"
+    assert result[1]["Region"] == "West"
+
+
+def test_pivot_avg_sort_overrides_total_sort():
+    """Test avg_sort overrides total_sort."""
+    rows = _copy(DATA)
+    fnames, result = upvt.pivot(
+        rows, "Region", "Product", "Revenue",
+        total=True, total_sort="asc",
+        avg=True, avg_sort="desc",
+    )
+    # avg_sort wins: West (225) before East (175)
+    assert result[0]["Region"] == "West"
+    assert result[1]["Region"] == "East"
+
+
+def test_pivot_total_and_avg_column_order():
+    """Test Total appears before Avg when both are present."""
+    rows = _copy(DATA)
+    fnames, result = upvt.pivot(
+        rows, "Region", "Product", "Revenue", total=True, avg=True
+    )
+    assert fnames[-2] == "Total"
+    assert fnames[-1] == "Avg"
+
+
+def test_avg_values_basic():
+    """Test _avg_values with all cells present."""
+    assert upvt._avg_values(["100", "200"], 2) == "150.00"
+
+
+def test_avg_values_missing():
+    """Test _avg_values with missing cells (denominator includes them)."""
+    assert upvt._avg_values(["100"], 2) == "50.00"
+
+
+def test_avg_values_zero_count():
+    """Test _avg_values with zero columns."""
+    assert upvt._avg_values([], 0) == "0.00"
+
+
 # --- format_table tests ---
 
 

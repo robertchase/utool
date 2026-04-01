@@ -68,6 +68,28 @@ def _sum_values(values: list[str]) -> str:
 
 
 TOTAL_HEADER = "Total"
+AVG_HEADER = "Avg"
+
+
+def _avg_values(values: list[str], count: int) -> str:
+    """Compute the mean of values over count buckets, treating missing as zero.
+
+    values -- summed cell values for cells that exist
+    count -- total number of columns (denominator; missing cells count as 0)
+    returns string representation of the mean, always 2 decimal places
+    """
+    if count == 0:
+        return "0.00"
+    total = Decimal(0)
+    for val in values:
+        val = val.strip()
+        if not val:
+            continue
+        try:
+            total += Decimal(val)
+        except InvalidOperation:
+            continue
+    return format(total / Decimal(count), ".2f")
 
 
 def pivot(
@@ -79,6 +101,8 @@ def pivot(
     col_sort: str | None = None,
     total: bool = False,
     total_sort: str | None = None,
+    avg: bool = False,
+    avg_sort: str | None = None,
 ) -> tuple[list[str], list[dict]]:
     """Build a pivot table from rows.
 
@@ -91,6 +115,9 @@ def pivot(
     total -- include a Total column summing each row
     total_sort -- 'asc', 'desc', or None; if set, sort rows by total
                   (overrides row_sort)
+    avg -- include an Avg column with the row mean (missing cells = 0)
+    avg_sort -- 'asc', 'desc', or None; if set, sort rows by avg
+                (overrides total_sort and row_sort)
     returns (fieldnames, pivot_rows) where fieldnames starts with row_col
     """
     # Collect unique row and column values in encounter order
@@ -126,13 +153,22 @@ def pivot(
                 cell_values.append(summed)
         if total:
             pivot_row[TOTAL_HEADER] = _sum_values(cell_values)
+        if avg:
+            pivot_row[AVG_HEADER] = _avg_values(cell_values, len(col_labels))
         pivot_rows.append(pivot_row)
 
     if total:
         fieldnames.append(TOTAL_HEADER)
+    if avg:
+        fieldnames.append(AVG_HEADER)
 
-    # Sort rows: total_sort overrides row_sort
-    if total_sort is not None and total:
+    # Sort rows: avg_sort > total_sort > row_sort
+    if avg_sort is not None and avg:
+        pivot_rows.sort(
+            key=lambda r: Decimal(r[AVG_HEADER] or "0"),
+            reverse=(avg_sort == "desc"),
+        )
+    elif total_sort is not None and total:
         pivot_rows.sort(
             key=lambda r: Decimal(r[TOTAL_HEADER] or "0"),
             reverse=(total_sort == "desc"),
@@ -211,6 +247,14 @@ def main() -> None:
         "use --total+ or --total- to sort rows by total asc/desc",
     )
     parser.add_argument(
+        "--avg",
+        nargs="?",
+        const="",
+        default=None,
+        help="add an Avg column with the row mean (missing cells count as 0); "
+        "use --avg+ or --avg- to sort rows by avg asc/desc",
+    )
+    parser.add_argument(
         "--tsv",
         action="store_true",
         help="read input as TSV instead of CSV",
@@ -227,12 +271,13 @@ def main() -> None:
         help="write output as TSV instead of CSV",
     )
 
-    # Preprocess argv so --total+ and --total- are recognised by argparse
+    # Preprocess argv so --total+/- and --avg+/- are recognised by argparse
     argv = sys.argv[1:]
     for i, arg in enumerate(argv):
         if arg in ("--total+", "--total-"):
             argv[i:i + 1] = ["--total", arg[-1]]
-            break
+        elif arg in ("--avg+", "--avg-"):
+            argv[i:i + 1] = ["--avg", arg[-1]]
 
     args = parser.parse_args(argv)
 
@@ -267,9 +312,18 @@ def main() -> None:
     elif use_total and args.total == "-":
         total_sort = "desc"
 
+    # Parse --avg with optional +/- suffix
+    use_avg = args.avg is not None
+    avg_sort: str | None = None
+    if use_avg and args.avg == "+":
+        avg_sort = "asc"
+    elif use_avg and args.avg == "-":
+        avg_sort = "desc"
+
     pivot_fnames, pivot_rows = pivot(
         rows, row_col, col_col, val_col, row_sort, col_sort,
         total=use_total, total_sort=total_sort,
+        avg=use_avg, avg_sort=avg_sort,
     )
 
     if args.to_table:
