@@ -225,12 +225,14 @@ def split_json(
     data: str,
     indexes: list[ColumnSelector],
     strict: bool = False,
+    null_value: str = "",
 ) -> typing.Iterator[list[str]]:
     """Split JSON data into columns.
 
     data - JSON string (list of dicts or sequence of dicts)
     indexes - list of ColumnSelectors
     strict - if True, all dicts must have the same keys
+    null_value - string to use for JSON null values (default="")
     """
     dicts = _parse_json_dicts(data)
     if not dicts:
@@ -259,7 +261,7 @@ def split_json(
     yield header
     # Yield data rows
     for i, d in enumerate(dicts):
-        cols = [str(d.get(k, "")) for k in keys]
+        cols = [null_value if d.get(k) is None and k in d else str(d.get(k, "")) for k in keys]
         result = []
         for index in indexes:
             try:
@@ -416,6 +418,11 @@ def main():
         help="output as sc (spreadsheet calculator) file (enables un-comma)",
     )
     parser.add_argument(
+        "--null-value",
+        default="",
+        help="string to substitute for JSON null values (default=empty string); only used with --json",
+    )
+    parser.add_argument(
         "--null-columns",
         "-n",
         action="store_true",
@@ -460,7 +467,7 @@ def main():
         if args.to_csv:
             csv_writer.writerow(args.to_csv.split(","))
     if args.json:
-        rows = split_json(args.file.read(), args.columns, args.strict)
+        rows = split_json(args.file.read(), args.columns, args.strict, args.null_value)
     else:
         rows = split(
             args.file.read(),

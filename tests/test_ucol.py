@@ -333,11 +333,28 @@ def test_json_union_keys():
 
 
 def test_json_non_string_values():
-    """Test --json converts non-string values to strings."""
+    """Test --json converts non-string values to strings; null becomes empty by default."""
     data = '[{"x": 42, "y": true, "z": null}]'
     cols = [ucol.column_specifier("1+")]
     ans = list(ucol.split_json(data, cols))
-    assert ans == [["x", "y", "z"], ["42", "True", "None"]]
+    assert ans == [["x", "y", "z"], ["42", "True", ""]]
+
+
+def test_json_null_value():
+    """Test --null-value substitutes a custom string for JSON null."""
+    data = '[{"x": 42, "y": null, "z": null}]'
+    cols = [ucol.column_specifier("1+")]
+    ans = list(ucol.split_json(data, cols, null_value="N/A"))
+    assert ans == [["x", "y", "z"], ["42", "N/A", "N/A"]]
+
+
+def test_json_null_value_does_not_affect_missing_keys():
+    """Test --null-value only affects null, not missing keys."""
+    data = '[{"x": 1}, {"x": 2, "y": null}]'
+    cols = [ucol.column_specifier("1+")]
+    ans = list(ucol.split_json(data, cols, null_value="N/A"))
+    # "y" missing from first dict → "", null in second dict → "N/A"
+    assert ans == [["x", "y"], ["1", ""], ["2", "N/A"]]
 
 
 def test_json_main(capsys):
