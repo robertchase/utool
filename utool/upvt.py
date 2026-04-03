@@ -204,11 +204,19 @@ def pivot(
     return fieldnames, pivot_rows
 
 
-def format_table(rows: list[dict], fieldnames: list[str]) -> str:
+def format_table(
+    rows: list[dict],
+    fieldnames: list[str],
+    vtotal: bool = False,
+    avg: bool = False,
+) -> str:
     """Format rows as a simple aligned table.
 
     rows -- list of dicts
     fieldnames -- column names in order
+    vtotal -- if True, insert a dashed separator before the last row
+              (first column blank, remaining columns dashed)
+    avg -- if True, leave the Avg column blank in the vtotal separator
     returns formatted table string
     """
     widths = [len(f) for f in fieldnames]
@@ -219,11 +227,27 @@ def format_table(rows: list[dict], fieldnames: list[str]) -> str:
     header = "  ".join(f.ljust(widths[i]) for i, f in enumerate(fieldnames))
     separator = "  ".join("-" * widths[i] for i in range(len(fieldnames)))
     lines = [header, separator]
-    for row in rows:
+
+    data_rows = rows[:-1] if vtotal and rows else rows
+    for row in data_rows:
         line = "  ".join(
             str(row.get(f, "")).ljust(widths[i]) for i, f in enumerate(fieldnames)
         )
         lines.append(line)
+
+    if vtotal and rows:
+        vtotal_sep = "  ".join(
+            " " * widths[i]
+            if i == 0 or (avg and fieldnames[i] == AVG_HEADER)
+            else "-" * widths[i]
+            for i, _ in enumerate(fieldnames)
+        )
+        lines.append(vtotal_sep)
+        total_row = rows[-1]
+        lines.append("  ".join(
+            str(total_row.get(f, "")).ljust(widths[i])
+            for i, f in enumerate(fieldnames)
+        ))
 
     return "\n".join(lines) + "\n"
 
@@ -377,7 +401,7 @@ def main() -> None:
     )
 
     if args.to_table:
-        sys.stdout.write(format_table(pivot_rows, pivot_fnames))
+        sys.stdout.write(format_table(pivot_rows, pivot_fnames, vtotal=use_vtotal, avg=use_avg))
     else:
         out_dialect = "excel-tab" if args.to_tsv else "excel"
         out = args.output or sys.stdout

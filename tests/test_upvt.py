@@ -481,3 +481,36 @@ def test_format_table():
     assert "A" in lines[0]
     assert "---" in lines[1]
     assert "hello" in lines[2]
+
+
+def test_format_table_vtotal_separator():
+    """Test that vtotal=True inserts a separator before the last row."""
+    rows = [
+        {"A": "East", "B": "100"},
+        {"A": "West", "B": "200"},
+        {"A": "Total", "B": "300"},
+    ]
+    output = upvt.format_table(rows, ["A", "B"], vtotal=True)
+    lines = output.strip().split("\n")
+    # header + header-sep + 2 data rows + vtotal-sep + total row = 6
+    assert len(lines) == 6
+    sep_line = lines[4]
+    # First column blank, second column dashed
+    assert sep_line.startswith(" ")
+    assert "---" in sep_line
+    assert lines[5].startswith("Total")
+
+
+def test_format_table_vtotal_separator_no_dashes_under_avg():
+    """Test that the Avg column has no dashes in the vtotal separator."""
+    rows = [
+        {"A": "East", "B": "100", "Avg": "50.00"},
+        {"A": "West", "B": "200", "Avg": "100.00"},
+        {"A": "Total", "B": "300", "Avg": ""},
+    ]
+    output = upvt.format_table(rows, ["A", "B", "Avg"], vtotal=True, avg=True)
+    lines = output.strip().split("\n")
+    sep_line = lines[4]
+    # Avg column should have no dashes; B column should
+    assert "---" in sep_line
+    assert sep_line.endswith(" " * len("Avg"))
