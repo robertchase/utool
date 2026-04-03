@@ -210,13 +210,13 @@ def test_pivot_decimal_precision():
     assert result[0]["x"] == "4.25"
 
 
-# --- total column tests ---
+# --- htotal column tests ---
 
 
-def test_pivot_total():
-    """Test pivot with total column."""
+def test_pivot_htotal():
+    """Test pivot with horizontal total column."""
     rows = _copy(DATA)
-    fnames, result = upvt.pivot(rows, "Region", "Product", "Revenue", total=True)
+    fnames, result = upvt.pivot(rows, "Region", "Product", "Revenue", htotal=True)
     assert fnames == ["Region", "Widget", "Gadget", "Total"]
     # East: 150 + 200 = 350
     assert result[0]["Total"] == "350"
@@ -224,11 +224,11 @@ def test_pivot_total():
     assert result[1]["Total"] == "450"
 
 
-def test_pivot_total_sort_desc():
-    """Test that total_sort=desc sorts rows by total descending."""
+def test_pivot_htotal_sort_desc():
+    """Test that htotal_sort=desc sorts rows by total descending."""
     rows = _copy(DATA)
     fnames, result = upvt.pivot(
-        rows, "Region", "Product", "Revenue", total=True, total_sort="desc"
+        rows, "Region", "Product", "Revenue", htotal=True, htotal_sort="desc"
     )
     # West (450) before East (350)
     assert result[0]["Region"] == "West"
@@ -237,38 +237,103 @@ def test_pivot_total_sort_desc():
     assert result[1]["Total"] == "350"
 
 
-def test_pivot_total_sort_asc():
-    """Test that total_sort=asc sorts rows by total ascending."""
+def test_pivot_htotal_sort_asc():
+    """Test that htotal_sort=asc sorts rows by total ascending."""
     rows = _copy(DATA)
     fnames, result = upvt.pivot(
-        rows, "Region", "Product", "Revenue", total=True, total_sort="asc"
+        rows, "Region", "Product", "Revenue", htotal=True, htotal_sort="asc"
     )
     # East (350) before West (450)
     assert result[0]["Region"] == "East"
     assert result[1]["Region"] == "West"
 
 
-def test_pivot_total_sort_overrides_row_sort():
-    """Test that total_sort overrides row_sort."""
+def test_pivot_htotal_sort_overrides_row_sort():
+    """Test that htotal_sort overrides row_sort."""
     rows = _copy(DATA)
     fnames, result = upvt.pivot(
         rows, "Region", "Product", "Revenue",
-        row_sort="asc", total=True, total_sort="desc",
+        row_sort="asc", htotal=True, htotal_sort="desc",
     )
-    # total_sort wins: West (450) before East (350)
+    # htotal_sort wins: West (450) before East (350)
     assert result[0]["Region"] == "West"
     assert result[1]["Region"] == "East"
 
 
-def test_pivot_total_missing_cells():
-    """Test total with sparse pivot (missing cells treated as 0)."""
+def test_pivot_htotal_missing_cells():
+    """Test htotal with sparse pivot (missing cells not summed)."""
     rows = [
         {"R": "a", "C": "x", "V": "10"},
         {"R": "b", "C": "y", "V": "20"},
     ]
-    fnames, result = upvt.pivot(rows, "R", "C", "V", total=True)
+    fnames, result = upvt.pivot(rows, "R", "C", "V", htotal=True)
     assert result[0]["Total"] == "10"
     assert result[1]["Total"] == "20"
+
+
+# --- vtotal row tests ---
+
+
+def test_pivot_vtotal():
+    """Test pivot with vertical total row."""
+    rows = _copy(DATA)
+    fnames, result = upvt.pivot(rows, "Region", "Product", "Revenue", vtotal=True)
+    assert fnames == ["Region", "Widget", "Gadget"]
+    assert len(result) == 3  # 2 data rows + 1 total row
+    total_row = result[-1]
+    assert total_row["Region"] == "Total"
+    # Widget: 150 (East) + 150 (West) = 300
+    assert total_row["Widget"] == "300"
+    # Gadget: 200 (East) + 300 (West) = 500
+    assert total_row["Gadget"] == "500"
+
+
+def test_pivot_vtotal_and_htotal():
+    """Test pivot with both vtotal and htotal; bottom-right is grand total."""
+    rows = _copy(DATA)
+    fnames, result = upvt.pivot(
+        rows, "Region", "Product", "Revenue", htotal=True, vtotal=True
+    )
+    assert fnames == ["Region", "Widget", "Gadget", "Total"]
+    total_row = result[-1]
+    assert total_row["Region"] == "Total"
+    assert total_row["Widget"] == "300"
+    assert total_row["Gadget"] == "500"
+    # Grand total: 350 + 450 = 800
+    assert total_row["Total"] == "800"
+
+
+def test_pivot_vtotal_stays_last_after_sort():
+    """Test that vtotal row is appended after sorting."""
+    rows = _copy(DATA)
+    fnames, result = upvt.pivot(
+        rows, "Region", "Product", "Revenue",
+        htotal=True, htotal_sort="desc", vtotal=True,
+    )
+    assert result[-1]["Region"] == "Total"
+    assert result[0]["Region"] == "West"
+    assert result[1]["Region"] == "East"
+
+
+def test_pivot_vtotal_summary_only():
+    """Test vtotal row with summary_only shows only label and htotal."""
+    rows = _copy(DATA)
+    fnames, result = upvt.pivot(
+        rows, "Region", "Product", "Revenue",
+        htotal=True, vtotal=True, summary_only=True,
+    )
+    assert fnames == ["Region", "Total"]
+    total_row = result[-1]
+    assert total_row == {"Region": "Total", "Total": "800"}
+
+
+def test_pivot_vtotal_with_avg_leaves_avg_blank():
+    """Test vtotal row has blank Avg cell."""
+    rows = _copy(DATA)
+    fnames, result = upvt.pivot(
+        rows, "Region", "Product", "Revenue", avg=True, vtotal=True
+    )
+    assert result[-1]["Avg"] == ""
 
 
 # --- avg column tests ---
@@ -323,7 +388,7 @@ def test_pivot_avg_sort_overrides_total_sort():
     rows = _copy(DATA)
     fnames, result = upvt.pivot(
         rows, "Region", "Product", "Revenue",
-        total=True, total_sort="asc",
+        htotal=True, htotal_sort="asc",
         avg=True, avg_sort="desc",
     )
     # avg_sort wins: West (225) before East (175)
@@ -335,7 +400,7 @@ def test_pivot_total_and_avg_column_order():
     """Test Total appears before Avg when both are present."""
     rows = _copy(DATA)
     fnames, result = upvt.pivot(
-        rows, "Region", "Product", "Revenue", total=True, avg=True
+        rows, "Region", "Product", "Revenue", htotal=True, avg=True
     )
     assert fnames[-2] == "Total"
     assert fnames[-1] == "Avg"
@@ -363,7 +428,7 @@ def test_pivot_summary_only_total():
     """Test summary_only with --total omits pivot columns."""
     rows = _copy(DATA)
     fnames, result = upvt.pivot(
-        rows, "Region", "Product", "Revenue", total=True, summary_only=True
+        rows, "Region", "Product", "Revenue", htotal=True, summary_only=True
     )
     assert fnames == ["Region", "Total"]
     assert "Widget" not in fnames
@@ -385,7 +450,7 @@ def test_pivot_summary_only_total_and_avg():
     """Test summary_only with both --total and --avg."""
     rows = _copy(DATA)
     fnames, result = upvt.pivot(
-        rows, "Region", "Product", "Revenue", total=True, avg=True, summary_only=True
+        rows, "Region", "Product", "Revenue", htotal=True, avg=True, summary_only=True
     )
     assert fnames == ["Region", "Total", "Avg"]
 
@@ -395,7 +460,7 @@ def test_pivot_summary_only_sorting_still_works():
     rows = _copy(DATA)
     fnames, result = upvt.pivot(
         rows, "Region", "Product", "Revenue",
-        total=True, total_sort="desc", summary_only=True,
+        htotal=True, htotal_sort="desc", summary_only=True,
     )
     assert result[0]["Region"] == "West"
     assert result[1]["Region"] == "East"

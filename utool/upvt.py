@@ -99,8 +99,9 @@ def pivot(
     val_col: str,
     row_sort: str | None = None,
     col_sort: str | None = None,
-    total: bool = False,
-    total_sort: str | None = None,
+    htotal: bool = False,
+    htotal_sort: str | None = None,
+    vtotal: bool = False,
     avg: bool = False,
     avg_sort: str | None = None,
     summary_only: bool = False,
@@ -113,12 +114,13 @@ def pivot(
     val_col -- column whose values fill cells (summed per group)
     row_sort -- 'asc', 'desc', or None to preserve encounter order
     col_sort -- 'asc', 'desc', or None to preserve encounter order
-    total -- include a Total column summing each row
-    total_sort -- 'asc', 'desc', or None; if set, sort rows by total
-                  (overrides row_sort)
+    htotal -- include a Total column summing each row (horizontal)
+    htotal_sort -- 'asc', 'desc', or None; if set, sort rows by htotal
+                   (overrides row_sort)
+    vtotal -- append a Total row summing each column (vertical)
     avg -- include an Avg column with the row mean (missing cells = 0)
     avg_sort -- 'asc', 'desc', or None; if set, sort rows by avg
-                (overrides total_sort and row_sort)
+                (overrides htotal_sort and row_sort)
     summary_only -- omit pivot columns; output only row label + Total/Avg
     returns (fieldnames, pivot_rows) where fieldnames starts with row_col
     """
@@ -153,13 +155,13 @@ def pivot(
             pivot_row[c] = summed
             if summed:
                 cell_values.append(summed)
-        if total:
+        if htotal:
             pivot_row[TOTAL_HEADER] = _sum_values(cell_values)
         if avg:
             pivot_row[AVG_HEADER] = _avg_values(cell_values, len(col_labels))
         pivot_rows.append(pivot_row)
 
-    if total:
+    if htotal:
         fieldnames.append(TOTAL_HEADER)
     if avg:
         fieldnames.append(AVG_HEADER)
@@ -169,21 +171,35 @@ def pivot(
         fieldnames = [row_col] + summary_cols
         pivot_rows = [{k: r[k] for k in fieldnames} for r in pivot_rows]
 
-    # Sort rows: avg_sort > total_sort > row_sort
+    # Sort rows: avg_sort > htotal_sort > row_sort
     if avg_sort is not None and avg:
         pivot_rows.sort(
             key=lambda r: Decimal(r[AVG_HEADER] or "0"),
             reverse=(avg_sort == "desc"),
         )
-    elif total_sort is not None and total:
+    elif htotal_sort is not None and htotal:
         pivot_rows.sort(
             key=lambda r: Decimal(r[TOTAL_HEADER] or "0"),
-            reverse=(total_sort == "desc"),
+            reverse=(htotal_sort == "desc"),
         )
     elif row_sort is not None:
         row_labels.sort(reverse=(row_sort == "desc"))
         label_order = {label: i for i, label in enumerate(row_labels)}
         pivot_rows.sort(key=lambda r: label_order[r[row_col]])
+
+    # Append vertical total row after sorting so it stays at the bottom
+    if vtotal:
+        vtotal_row: dict[str, str] = {row_col: TOTAL_HEADER}
+        for c in col_labels:
+            if not summary_only:
+                vtotal_row[c] = _sum_values([r[c] for r in pivot_rows if r.get(c)])
+        if htotal:
+            vtotal_row[TOTAL_HEADER] = _sum_values(
+                [r[TOTAL_HEADER] for r in pivot_rows if r.get(TOTAL_HEADER)]
+            )
+        if avg:
+            vtotal_row[AVG_HEADER] = ""
+        pivot_rows.append(vtotal_row)
 
     return fieldnames, pivot_rows
 
@@ -250,8 +266,21 @@ def main() -> None:
         nargs="?",
         const="",
         default=None,
+        help="add both a Total column (per row) and a Total row (per column); "
+        "use --total+ or --total- to sort rows by row total asc/desc",
+    )
+    parser.add_argument(
+        "--htotal",
+        nargs="?",
+        const="",
+        default=None,
         help="add a Total column summing each row; "
-        "use --total+ or --total- to sort rows by total asc/desc",
+        "use --htotal+ or --htotal- to sort rows by total asc/desc",
+    )
+    parser.add_argument(
+        "--vtotal",
+        action="store_true",
+        help="append a Total row summing each column",
     )
     parser.add_argument(
         "--avg",
@@ -283,11 +312,13 @@ def main() -> None:
         help="write output as TSV instead of CSV",
     )
 
-    # Preprocess argv so --total+/- and --avg+/- are recognised by argparse
+    # Preprocess argv so --total+/-, --htotal+/-, --avg+/- are recognised by argparse
     argv = sys.argv[1:]
     for i, arg in enumerate(argv):
         if arg in ("--total+", "--total-"):
             argv[i:i + 1] = ["--total", arg[-1]]
+        elif arg in ("--htotal+", "--htotal-"):
+            argv[i:i + 1] = ["--htotal", arg[-1]]
         elif arg in ("--avg+", "--avg-"):
             argv[i:i + 1] = ["--avg", arg[-1]]
 
@@ -316,13 +347,18 @@ def main() -> None:
 
     rows = list(reader)
 
-    # Parse --total with optional +/- suffix
-    use_total = args.total is not None
-    total_sort: str | None = None
-    if use_total and args.total == "+":
-        total_sort = "asc"
-    elif use_total and args.total == "-":
-        total_sort = "desc"
+    # Parse --total / --htotal with optional +/- suffix
+    # --total implies both htotal and vtotal
+    def _parse_total_arg(val: str | None) -> tuple[bool, str | None]:
+        if val is None:
+            return False, None
+        return True, ("asc" if val == "+" else "desc" if val == "-" else None)
+
+    use_htotal_from_total, htotal_sort_from_total = _parse_total_arg(args.total)
+    use_htotal_from_flag, htotal_sort_from_flag = _parse_total_arg(args.htotal)
+    use_htotal = use_htotal_from_total or use_htotal_from_flag
+    htotal_sort = htotal_sort_from_total or htotal_sort_from_flag
+    use_vtotal = args.vtotal or use_htotal_from_total
 
     # Parse --avg with optional +/- suffix
     use_avg = args.avg is not None
@@ -334,7 +370,8 @@ def main() -> None:
 
     pivot_fnames, pivot_rows = pivot(
         rows, row_col, col_col, val_col, row_sort, col_sort,
-        total=use_total, total_sort=total_sort,
+        htotal=use_htotal, htotal_sort=htotal_sort,
+        vtotal=use_vtotal,
         avg=use_avg, avg_sort=avg_sort,
         summary_only=args.summary_only,
     )
