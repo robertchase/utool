@@ -483,6 +483,21 @@ def test_format_table():
     assert "hello" in lines[2]
 
 
+def test_format_table_right_justify():
+    """Test that right_justify right-aligns all columns except the first."""
+    rows = [
+        {"A": "East", "B": "100", "C": "1000"},
+        {"A": "West", "B": "20",  "C": "200"},
+    ]
+    output = upvt.format_table(rows, ["A", "B", "C"], right_justify=True)
+    lines = output.strip().split("\n")
+    # Data rows: first col left-justified, others right-justified
+    assert lines[2].startswith("East")
+    assert lines[2].endswith("1000")
+    assert lines[3].startswith("West")
+    assert lines[3].endswith(" 200")
+
+
 def test_format_table_vtotal_separator():
     """Test that vtotal=True inserts a separator before the last row."""
     rows = [

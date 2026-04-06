@@ -209,6 +209,7 @@ def format_table(
     fieldnames: list[str],
     vtotal: bool = False,
     avg: bool = False,
+    right_justify: bool = False,
 ) -> str:
     """Format rows as a simple aligned table.
 
@@ -217,12 +218,17 @@ def format_table(
     vtotal -- if True, insert a dashed separator before the last row
               (first column blank, remaining columns dashed)
     avg -- if True, leave the Avg column blank in the vtotal separator
+    right_justify -- if True, right-align all columns except the first
     returns formatted table string
     """
     widths = [len(f) for f in fieldnames]
     for row in rows:
         for i, f in enumerate(fieldnames):
             widths[i] = max(widths[i], len(str(row.get(f, ""))))
+
+    def _fmt(val: str, i: int) -> str:
+        """Format a cell value, left- or right-justifying by column index."""
+        return val.rjust(widths[i]) if right_justify and i > 0 else val.ljust(widths[i])
 
     header = "  ".join(f.ljust(widths[i]) for i, f in enumerate(fieldnames))
     separator = "  ".join("-" * widths[i] for i in range(len(fieldnames)))
@@ -231,7 +237,7 @@ def format_table(
     data_rows = rows[:-1] if vtotal and rows else rows
     for row in data_rows:
         line = "  ".join(
-            str(row.get(f, "")).ljust(widths[i]) for i, f in enumerate(fieldnames)
+            _fmt(str(row.get(f, "")), i) for i, f in enumerate(fieldnames)
         )
         lines.append(line)
 
@@ -245,8 +251,7 @@ def format_table(
         lines.append(vtotal_sep)
         total_row = rows[-1]
         lines.append("  ".join(
-            str(total_row.get(f, "")).ljust(widths[i])
-            for i, f in enumerate(fieldnames)
+            _fmt(str(total_row.get(f, "")), i) for i, f in enumerate(fieldnames)
         ))
 
     return "\n".join(lines) + "\n"
@@ -331,6 +336,12 @@ def main() -> None:
         help="display output as a formatted table",
     )
     parser.add_argument(
+        "-r",
+        "--right-justify",
+        action="store_true",
+        help="right-justify value columns in --to-table output",
+    )
+    parser.add_argument(
         "--to-tsv",
         action="store_true",
         help="write output as TSV instead of CSV",
@@ -401,7 +412,11 @@ def main() -> None:
     )
 
     if args.to_table:
-        sys.stdout.write(format_table(pivot_rows, pivot_fnames, vtotal=use_vtotal, avg=use_avg))
+        sys.stdout.write(format_table(
+            pivot_rows, pivot_fnames,
+            vtotal=use_vtotal, avg=use_avg,
+            right_justify=args.right_justify,
+        ))
     else:
         out_dialect = "excel-tab" if args.to_tsv else "excel"
         out = args.output or sys.stdout
