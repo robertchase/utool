@@ -156,6 +156,14 @@ ucol [-dDnsf] [--csv] [--to-csv] [--to-json] [--to-sc] column-numbers
 
   --csv               parse lines as csv
 
+  --tsv               parse lines as tsv
+
+  --json              parse input as JSON (list of dicts or sequence of dicts);
+                      uses first row as column headers
+
+  --null-value STR    string to substitute for JSON null values (default=empty
+                      string); only used with --json
+
   --un-comma          remove commas and/or leading dollar sign ($) from numbers
 
   --to-json           output as json (list of dict) using first row as keys
@@ -694,7 +702,144 @@ ubrk [-stof] [--tsv] [--to-tsv] [--total COLS] [break-spec]
   --to-tsv    write output as TSV instead of CSV
 ```
 
+## upvt
+
+Create pivot tables from CSV data.
+
+### example
+
+Here is some test data:
+
+```
+> cat sales.csv
+Region,Product,Revenue
+East,Widget,100
+East,Gadget,200
+West,Widget,150
+West,Gadget,300
+East,Widget,50
+```
+
+Basic pivot — rows are regions, columns are products, cells are summed revenue:
+
+```
+> upvt Region Product Revenue -f sales.csv -t
+Region  Widget  Gadget
+------  ------  ------
+East    150     200
+West    150     300
+```
+
+Sort rows descending and columns ascending using `+`/`-` suffixes on the row/column arguments:
+
+```
+> upvt Region- Product+ Revenue -f sales.csv -t
+Region  Gadget  Widget
+------  ------  ------
+West    300     150
+East    200     150
+```
+
+Add a horizontal total column (`--htotal`) and a vertical total row (`--vtotal`).
+`--total` is shorthand for both:
+
+```
+> upvt Region Product Revenue -f sales.csv --total -t
+Region  Widget  Gadget  Total
+------  ------  ------  -----
+East    150     200     350
+West    150     300     450
+        ------  ------  -----
+Total   300     500     800
+```
+
+Add a row average (`--avg`). Missing cells count as zero in the denominator:
+
+```
+> upvt Region Product Revenue -f sales.csv --total --avg -t
+Region  Widget  Gadget  Total  Avg
+------  ------  ------  -----  ------
+East    150     200     350    175.00
+West    150     300     450    225.00
+        ------  ------  -----
+Total   300     500     800
+```
+
+Sort rows by total descending (`--total-`) and right-justify the value columns (`-r`):
+
+```
+> upvt Region Product Revenue -f sales.csv --total- --avg -t -r
+Region  Widget  Gadget  Total     Avg
+------  ------  ------  -----  ------
+West       150     300    450  225.00
+East       150     200    350  175.00
+           ------  ------  -----
+Total      300     500    800
+```
+
+Show only summary columns with `--summary-only`:
+
+```
+> upvt Region Product Revenue -f sales.csv --total- --avg --summary-only -t -r
+Region  Total     Avg
+------  -----  ------
+West      450  225.00
+East      350  175.00
+          ---
+Total     800
+```
+
+### syntax
+```
+upvt [-f] [-o] [-t] [-r] [--total[+|-]] [--htotal[+|-]] [--vtotal]
+     [--avg[+|-]] [--summary-only] [--tsv] [--to-tsv] row col value
+```
+
+### arguments
+```
+  row    column for row labels (name or 1-indexed number);
+         suffix with + or - to sort ascending or descending
+
+  col    column for pivot column headers (name or 1-indexed number);
+         suffix with + or - to sort ascending or descending
+
+  value  column whose values fill cells (summed per group)
+```
+
+### options
+```
+  -f FILE        read input from FILE
+  --file         (default stdin)
+
+  -o FILE        write output to FILE
+  --output       (default stdout)
+
+  --total[+|-]   add both a Total column (per row) and a Total row (per column);
+                 suffix with + or - to sort rows by row total asc/desc
+
+  --htotal[+|-]  add a Total column summing each row;
+                 suffix with + or - to sort rows by total asc/desc
+
+  --vtotal       append a Total row summing each column
+
+  --avg[+|-]     add an Avg column with the row mean (missing cells count as 0);
+                 suffix with + or - to sort rows by avg asc/desc;
+                 avg sort takes priority over --total/--htotal sort
+
+  --summary-only omit pivot columns; output only row label plus --total/--avg columns
+
+  --tsv          read input as TSV instead of CSV
+
+  -t             display output as a formatted table
+  --to-table
+
+  -r             right-justify value columns in --to-table output
+  --right-justify
+
+  --to-tsv       write output as TSV instead of CSV
+```
+
 # Installation
 
 1. clone the repo
-2. `pip install .` from the repo's top level
+2. `uv pip install .` (or `pip install .`) from the repo's top level
