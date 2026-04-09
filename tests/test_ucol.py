@@ -266,6 +266,22 @@ def test_to_csv_quoting(capsys):
     assert '"world,earth"' in out
 
 
+def test_to_tsv(capsys):
+    """Test --to-tsv output."""
+    sys.argv = ["ucol", "--to-tsv", "--", "1", "3"]
+    with mock.patch("sys.stdin", io.StringIO("a b c\nd e f")):
+        ucol.main()
+    assert capsys.readouterr().out == "a\tc\nd\tf\n"
+
+
+def test_to_tsv_with_header(capsys):
+    """Test --to-tsv output with header."""
+    sys.argv = ["ucol", "--to-tsv", "name\tcity", "1", "3"]
+    with mock.patch("sys.stdin", io.StringIO("a b c\nd e f")):
+        ucol.main()
+    assert capsys.readouterr().out == "name\tcity\na\tc\nd\tf\n"
+
+
 # --- JSON input tests ---
 
 JSON_LIST = '[{"name": "Alice", "age": "30"}, {"name": "Bob", "age": "25"}]'

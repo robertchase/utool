@@ -140,7 +140,7 @@ year,month,amount
 
 ### syntax
 ```
-ucol [-dDnsf] [--csv] [--to-csv] [--to-json] [--to-sc] column-numbers
+ucol [-dDnsf] [--csv] [--tsv] [--json] [--to-csv] [--to-tsv] [--to-json] [--to-sc] column-numbers
 ```
 
 ### options
@@ -175,6 +175,9 @@ ucol [-dDnsf] [--csv] [--to-csv] [--to-json] [--to-sc] column-numbers
                       Note: when used without a header, place after column numbers
                       (e.g. ucol 1 3 --to-csv) or use -- separator
                       (e.g. ucol --to-csv -- 1 3)
+
+  --to-tsv            output as tsv
+  --to-tsv H1\tH2     output as tsv with header line
 
   --to-sc             output as sc (spreadsheet calculator) format (enables --un-comma)
 

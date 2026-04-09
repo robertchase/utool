@@ -413,6 +413,13 @@ def main():
         help="output as csv, optionally with comma-separated header names",
     )
     parser.add_argument(
+        "--to-tsv",
+        nargs="?",
+        const="",
+        default=None,
+        help="output as tsv, optionally with tab-separated header names",
+    )
+    parser.add_argument(
         "--to-sc",
         action="store_true",
         help="output as sc (spreadsheet calculator) file (enables un-comma)",
@@ -466,6 +473,10 @@ def main():
         csv_writer = csv.writer(sys.stdout, lineterminator="\n")
         if args.to_csv:
             csv_writer.writerow(args.to_csv.split(","))
+    elif args.to_tsv is not None:
+        csv_writer = csv.writer(sys.stdout, dialect="excel-tab", lineterminator="\n")
+        if args.to_tsv:
+            csv_writer.writerow(args.to_tsv.split("\t"))
     if args.json:
         rows = split_json(args.file.read(), args.columns, args.strict, args.null_value)
     else:
