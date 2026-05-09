@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "utool"
-version = "1.12.0"
+version = "1.13.0"
 
 [dependency-groups]
 dev = ["pytest"]
@@ -16,6 +16,10 @@ upar = "utool.upar:main"
 usup = "utool.usup:main"
 ubrk = "utool.ubrk:main"
 upvt = "utool.upvt:main"
+uqfx = "utool.uqfx:main"
+
+[tool.setuptools]
+packages = ["utool"]
 
 [flake8]
 max-line-length = 88
